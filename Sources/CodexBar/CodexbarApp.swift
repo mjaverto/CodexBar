@@ -372,6 +372,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var managedCodexAccountCoordinator: ManagedCodexAccountCoordinator?
     private var codexAccountPromotionCoordinator: CodexAccountPromotionCoordinator?
     private var cloudSyncCoordinator: CloudSyncCoordinator?
+    private var appUsageSocketServer: AppUsageSocketServer?
     private var settingsWindowController: SettingsWindowController?
     private var pendingUpdateSettingsOpen = false
     private lazy var placeholderSettingsWindowGuard = PlaceholderSettingsWindowGuard(
@@ -456,6 +457,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             missingItemRetriesRemaining: Self.settingsMenuReadinessRetryCount,
             fallbackVerificationRetriesRemaining: Self.settingsMenuFallbackVerificationRetryCount)
         self.cloudSyncCoordinator?.start()
+        self.startAppUsageSocketServer()
         Task { @MainActor [weak self] in
             await Task.yield()
             guard let settings = self?.settings else { return }
@@ -511,6 +513,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         self.cloudSyncCoordinator?.stop()
+        self.appUsageSocketServer?.stop()
+        self.appUsageSocketServer = nil
         self.memoryPressureMonitor.stop()
         #if DEBUG
         self.removeDebugMemoryPressureObserver()
@@ -523,6 +527,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         self.cloudSyncCoordinator?.applicationDidBecomeActive()
+    }
+
+    /// Lets non-GUI `codexbar usage` runs (e.g. over SSH) read this app's usage over a same-user socket.
+    private func startAppUsageSocketServer() {
+        // Tests must never bind the real ~/Library/Application Support/CodexBar/app-usage.sock.
+        guard !SettingsStore.isRunningTests,
+              self.appUsageSocketServer == nil,
+              let store = self.store
+        else { return }
+        let server = AppUsageSocketServer { [weak store] in
+            await store?.appUsageSocketPayload() ?? AppUsageSocketPayload(providers: [])
+        }
+        do {
+            try server.start()
+            self.appUsageSocketServer = server
+        } catch {
+            CodexBarLog.logger(LogCategories.app).error(
+                "App usage socket unavailable",
+                metadata: ["error": error.localizedDescription])
+        }
     }
 
     func runProviderLoginFlow(_ provider: UsageProvider) async {

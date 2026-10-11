@@ -27,6 +27,8 @@ struct UsageCommandContext {
     var persistCLISessions: Bool = false
     var persistentCLISessionIdleWindow: TimeInterval?
     var cardsLayout: Bool = false
+    /// Non-GUI sessions (e.g. SSH) read the running app's usage when a default-account fetch fails.
+    var appUsageFallback: (@Sendable (UsageProvider) -> AppUsageSocketPayload.Provider?)?
 }
 
 struct UsageCommandOutput {
@@ -360,6 +362,7 @@ extension CodexBarCLI {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private static func fetchUsageOutput(
         provider: UsageProvider,
         account: ProviderTokenAccount?,
@@ -490,6 +493,15 @@ extension CodexBarCLI {
                     notes: notes),
                 output: &output)
         case let .failure(error):
+            if let fallback = Self.appUsageFallbackOutput(
+                provider: provider,
+                isDefaultAccount: account == nil && codexVisibleAccount == nil,
+                status: status,
+                effectiveSourceMode: effectiveSourceMode,
+                command: command)
+            {
+                return await Self.finishUsageOutput(fallback, provider: provider, command: command)
+            }
             output.exitCode = Self.mapError(error)
             if command.format == .json {
                 output.payload.append(Self.makeProviderErrorPayload(
@@ -527,6 +539,49 @@ extension CodexBarCLI {
         }
 
         return await Self.finishUsageOutput(output, provider: provider, command: command)
+    }
+
+    /// Serves the running CodexBar app's usage when a default-account fetch without `--source` fails in a
+    /// session that cannot read login-keychain credentials. Returns nil when the fallback does not apply.
+    static func appUsageFallbackOutput(
+        provider: UsageProvider,
+        isDefaultAccount: Bool,
+        status: ProviderStatusPayload?,
+        effectiveSourceMode: ProviderSourceMode,
+        command: UsageCommandContext) -> UsageCommandOutput?
+    {
+        guard command.sourceModeOverride == nil,
+              isDefaultAccount,
+              let entry = command.appUsageFallback?(provider)
+        else { return nil }
+        let source = CLIAppUsageFallback.sourceLabel
+        let usage = entry.usage.scoped(to: provider)
+        let notes = Self.usageTextNotes(
+            provider: provider,
+            sourceMode: effectiveSourceMode,
+            resolvedSourceLabel: source,
+            dataConfidence: usage.dataConfidence)
+            + ["From the running CodexBar app. \(UsageFormatter.updatedString(from: usage.updatedAt))"]
+        var output = UsageCommandOutput()
+        Self.appendSuccessRenderOutput(
+            UsageSuccessRenderInput(
+                provider: provider,
+                accountLabel: nil,
+                // The default account has no cache key (`usageCacheAccountKey` returns nil for it).
+                cacheAccountKey: nil,
+                version: nil,
+                source: source,
+                status: status,
+                usage: usage,
+                credits: command.includeCredits ? entry.credits : nil,
+                antigravityPlanInfo: nil,
+                dashboard: nil,
+                effectiveSourceMode: effectiveSourceMode,
+                command: command,
+                diagnostic: nil,
+                notes: notes),
+            output: &output)
+        return output
     }
 
     static func shouldDetectVersion(provider: UsageProvider, result: ProviderFetchResult) -> Bool {

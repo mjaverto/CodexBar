@@ -56,7 +56,8 @@ struct CLIUsageFetchSetup {
             claudeFetcher: ClaudeUsageFetcher(browserDetection: browserDetection),
             browserDetection: browserDetection,
             providerRuntime: appAutoVerifier ? .app : .cli,
-            cardsLayout: cardsLayout)
+            cardsLayout: cardsLayout,
+            appUsageFallback: CLIAppUsageFallback.makeReader())
     }
 
     func tokenContext(config: CodexBarConfig, output: CLIOutputPreferences) -> TokenAccountCLIContext {

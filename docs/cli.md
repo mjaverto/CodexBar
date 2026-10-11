@@ -422,6 +422,25 @@ non-zero only when it cannot produce a valid snapshot document.
 - Safari cookie import may require granting CodexBar Full Disk Access (System Settings → Privacy & Security → Full Disk Access).
 - The `openaiDashboard` JSON field is normally sourced from the app’s cached dashboard snapshot; `--source auto|web` refreshes it live via WebKit using a per-account cookie store.
 
+## SSH and other non-GUI sessions (macOS)
+
+Over SSH (or any session without the GUI login session's graphic access), macOS does not unlock login-keychain
+secrets such as cached browser cookies, Chromium Safe Storage, or Claude Code credentials, so keychain-backed
+providers fail to fetch. If the CodexBar app is running for the same user, `codexbar usage` (and `cards`) falls back
+to the app's latest data for each provider whose local fetch failed and reports it as `"source": "codexbar-app"`.
+Text output adds a note that the data came from the running app and when it was last updated.
+
+- Applies only to the default account and only without an explicit `--source`. Providers that resolve a token
+  account (`--account`, `--account-index`, or a configured active account) and Codex `--all-accounts` rows for saved
+  accounts keep the local error.
+- Providers the app currently shows as stale (their last refresh failed) are not served; the local error stays.
+- GUI sessions never use the fallback, so local behavior there is unchanged.
+- The app listens on `~/Library/Application Support/CodexBar/app-usage.sock` (mode `0600`) and answers only
+  connections from the same user. It carries usage and plan only: no credentials and no account email,
+  organization, or ID.
+- The socket is a private app-to-CLI channel whose format can change in any release. Integrations should use
+  `codexbar usage --json` or `codexbar serve`.
+
 ## Managed Codex accounts (macOS)
 
 `codexbar codex-accounts list --json` lists managed account UUIDs, emails, and whether each readable
