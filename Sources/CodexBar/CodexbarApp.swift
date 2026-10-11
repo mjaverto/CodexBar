@@ -537,6 +537,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let enabled = withObservationTracking {
             settings.shareUsageWithCLI
         } onChange: { [weak self] in
+            // Withdrawing consent cuts off waiting clients in the same turn as the toggle; the re-arm restarts if on.
+            MainActor.assumeIsolated {
+                self?.setAppUsageSocketServerRunning(false)
+            }
             Task { @MainActor [weak self] in
                 self?.observeAppUsageSocketSetting()
             }
