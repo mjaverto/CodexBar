@@ -372,7 +372,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var managedCodexAccountCoordinator: ManagedCodexAccountCoordinator?
     private var codexAccountPromotionCoordinator: CodexAccountPromotionCoordinator?
     private var cloudSyncCoordinator: CloudSyncCoordinator?
-    private var appUsageSocketServer: AppUsageSocketServer?
+    private(set) var appUsageSocketServer: AppUsageSocketServer?
+    var appUsageSocketPath = AppUsageSocket.defaultPath
     private var settingsWindowController: SettingsWindowController?
     private var pendingUpdateSettingsOpen = false
     private lazy var placeholderSettingsWindowGuard = PlaceholderSettingsWindowGuard(
@@ -531,9 +532,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opt-in (Settings → Advanced): lets non-GUI `codexbar usage` runs (e.g. over SSH) read this app's usage over a
     /// same-user socket. The server follows the setting at runtime.
-    private func observeAppUsageSocketSetting() {
-        // Tests must never bind the real ~/Library/Application Support/CodexBar/app-usage.sock.
-        guard !SettingsStore.isRunningTests, let settings else { return }
+    func observeAppUsageSocketSetting() {
+        // Tests may run the server only on a temporary path, never the real Application Support socket.
+        guard !SettingsStore.isRunningTests || self.appUsageSocketPath != AppUsageSocket.defaultPath,
+              let settings
+        else { return }
         let enabled = withObservationTracking {
             settings.shareUsageWithCLI
         } onChange: { [weak self] in
@@ -555,7 +558,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         guard self.appUsageSocketServer == nil, let store = self.store else { return }
-        let server = AppUsageSocketServer { [weak store] in
+        let server = AppUsageSocketServer(path: self.appUsageSocketPath) { [weak store] in
             await store?.appUsageSocketPayload() ?? AppUsageSocketPayload(providers: [])
         }
         do {
