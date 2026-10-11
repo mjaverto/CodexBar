@@ -1,0 +1,1 @@
+Screenshots for https://github.com/steipete/CodexBar/pull/4437 (Settings > Advanced). Offscreen renders of the SwiftUI pane via NSHostingView + cacheDisplay, same approach as CodexWorkspaceDisplayScreenshotTests.
