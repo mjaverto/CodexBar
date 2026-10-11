@@ -7,7 +7,7 @@
 - Codex: show saved conversation titles in the Cost menu, retain session IDs in tooltips, and respect Hide personal information (#4429). Thanks @obrizan!
 - xAI: show an optional live remaining credit estimate from the current invoice preview alongside the posted prepaid balance (#4406). Thanks @lilbreadxiaomianbao!
 - Menu: add a default-on “Highlight menu cards on hover” toggle to preserve card colors when disabled, while keeping keyboard selection visible (#4414). Thanks @cynicalight!
-- CLI: in SSH and other non-GUI macOS sessions, `codexbar usage` and `cards` fall back to the running app's latest data when a provider's default-account fetch fails (for example, locked login-keychain secrets), reported as `source: codexbar-app`. Thanks @mjaverto!
+- CLI: in SSH and other non-GUI macOS sessions, `codexbar usage` and `cards` fall back to the running app's latest data when a provider's default-account fetch fails (for example, locked login-keychain secrets), reported as `source: codexbar-app` (#4437). Thanks @mjaverto!
 
 ### Changed
 
