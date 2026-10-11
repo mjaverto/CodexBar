@@ -103,6 +103,114 @@ struct AppUsageSocketTests {
     }
 
     @Test
+    func `stop revokes a client still waiting for its payload`() async throws {
+        let path = Self.temporarySocketPath()
+        defer { Self.removeSocketFiles(path) }
+        let gate = PayloadGate()
+        defer { gate.release() }
+        let server = AppUsageSocketServer(path: path) {
+            await gate.pass()
+            return Self.payload
+        }
+        try server.start()
+        defer { server.stop() }
+
+        let client = Task { await Self.receivedByteCount(path) }
+        try #require(await Self.waitUntil { gate.hasEntered })
+        let clock = ContinuousClock()
+        let stoppedAt = clock.now
+        server.stop()
+        // The payload is still held back, so this EOF can only come from stop().
+        #expect(await client.value == 0)
+        #expect(clock.now - stoppedAt < .seconds(5))
+
+        gate.release()
+        #expect(await Self.waitUntil { Self.isDrained(server) })
+    }
+
+    @Test
+    func `restart does not answer a client accepted before stop`() async throws {
+        let path = Self.temporarySocketPath()
+        defer { Self.removeSocketFiles(path) }
+        let gate = PayloadGate()
+        defer { gate.release() }
+        let server = AppUsageSocketServer(path: path) {
+            await gate.pass()
+            return Self.payload
+        }
+        try server.start()
+        defer { server.stop() }
+
+        let oldClient = Task { await Self.receivedByteCount(path) }
+        try #require(await Self.waitUntil { gate.hasEntered })
+        server.stop()
+        try server.start()
+        #expect(await oldClient.value == 0)
+
+        gate.release()
+        #expect(await Self.waitUntil { Self.isDrained(server) })
+        let received = try #require(await Self.read(path))
+        #expect(received.providers.map(\.provider) == ["claude"])
+    }
+
+    @Test
+    func `stop does not wait for a client that stopped reading`() async throws {
+        try await Self.expectStopRevokesInFlightWrite(clientHalfCloses: false)
+    }
+
+    @Test
+    func `stop revokes an in-flight write to a half-closed client`() async throws {
+        try await Self.expectStopRevokesInFlightWrite(clientHalfCloses: true)
+    }
+
+    /// A raw client connects and never reads, so the server's >256 KB write fills the socket buffers and blocks.
+    /// stop() must return promptly and cut the write off: the client then reads to EOF short of the full payload.
+    private static func expectStopRevokesInFlightWrite(clientHalfCloses: Bool) async throws {
+        let path = Self.temporarySocketPath()
+        defer { Self.removeSocketFiles(path) }
+        let window = RateWindow(
+            usedPercent: 42,
+            windowMinutes: 300,
+            resetsAt: Self.updatedAt,
+            resetDescription: "resets later")
+        let windows = (0..<5000).map { NamedRateWindow(id: "window-\($0)", title: "Window \($0)", window: window) }
+        let large = try AppUsageSocketPayload(providers: [
+            #require(AppUsageSocketPayload.Provider(
+                provider: .claude,
+                usage: UsageSnapshot(
+                    primary: window,
+                    secondary: nil,
+                    extraRateWindows: windows,
+                    updatedAt: Self.updatedAt),
+                credits: nil)),
+        ])
+        let fullSize = try large.encoded().count
+        try #require(fullSize > 256 * 1024)
+        let server = AppUsageSocketServer(path: path) { large }
+        try server.start()
+        defer { server.stop() }
+
+        let clientFD = try #require(AppUsageSocket.connectedSocket(path: path, timeout: 30))
+        defer { close(clientFD) }
+        if clientHalfCloses {
+            // Like `nc -U </dev/null`: the client is done sending before the server writes.
+            try #require(shutdown(clientFD, SHUT_WR) == 0)
+        }
+        try #require(await Self.waitUntil { server.inFlightClientCount == 1 })
+        try await Task.sleep(for: .milliseconds(100))
+        let clock = ContinuousClock()
+        let stoppedAt = clock.now
+        server.stop()
+        #expect(clock.now - stoppedAt < .seconds(1))
+
+        // Read before the drain wait: a write surviving stop() would now deliver the full payload.
+        let received = try #require(Self.readToEOF(clientFD))
+        #expect(received < fullSize)
+        #expect(clock.now - stoppedAt < .seconds(2))
+        #expect(await Self.waitUntil { Self.isDrained(server) })
+    }
+
+    @Test
     func `wire payload carries usage numbers but no identity or free-form provider data`() throws {
         let updatedAt = Self.updatedAt
         let usage = try UsageSnapshot(
@@ -243,24 +351,43 @@ struct AppUsageSocketTests {
                     return
                 }
                 defer { close(fd) }
-                var total = 0
-                var buffer = [UInt8](repeating: 0, count: 4096)
-                while true {
-                    let count = buffer.withUnsafeMutableBytes { raw in
-                        Darwin.read(fd, raw.baseAddress, raw.count)
-                    }
-                    if count > 0 {
-                        total += count
-                    } else if count == 0 {
-                        continuation.resume(returning: total)
-                        return
-                    } else if errno != EINTR {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-                }
+                continuation.resume(returning: Self.readToEOF(fd))
             }
         }
+    }
+
+    /// Bytes read from `fd` until EOF; nil on a read error (including the 30s receive timeout).
+    private static func readToEOF(_ fd: Int32) -> Int? {
+        var total = 0
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let count = buffer.withUnsafeMutableBytes { raw in
+                Darwin.read(fd, raw.baseAddress, raw.count)
+            }
+            if count > 0 {
+                total += count
+            } else if count == 0 {
+                return total
+            } else if errno != EINTR {
+                return nil
+            }
+        }
+    }
+
+    /// Polls `condition` for up to 5 seconds so a broken expectation fails instead of hanging the suite.
+    private static func waitUntil(_ condition: @Sendable () -> Bool) async -> Bool {
+        for _ in 0..<500 {
+            if condition() {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return false
+    }
+
+    /// Revoked clients are still closed by the server's queue after their payload resolves or their write fails.
+    private static func isDrained(_ server: AppUsageSocketServer) -> Bool {
+        server.pendingClientCount == 0 && server.inFlightClientCount == 0
     }
 
     /// Unix socket paths must fit `sun_path` (104 bytes), so keep the name short.
@@ -285,5 +412,49 @@ private final class PayloadBuildCounter: @unchecked Sendable {
 
     func increment() {
         self.lock.withLock { self.value += 1 }
+    }
+}
+
+/// Holds the first payload build until `release()`; later builds pass straight through.
+private final class PayloadGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls = 0
+    private var entered = false
+    private var isReleased = false
+    private var releaseWaiter: CheckedContinuation<Void, Never>?
+
+    var hasEntered: Bool {
+        self.lock.withLock { self.entered }
+    }
+
+    func pass() async {
+        let isFirst = self.lock.withLock { () -> Bool in
+            self.calls += 1
+            return self.calls == 1
+        }
+        guard isFirst else { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let resumeNow = self.lock.withLock { () -> Bool in
+                self.entered = true
+                if self.isReleased {
+                    return true
+                }
+                self.releaseWaiter = continuation
+                return false
+            }
+            if resumeNow {
+                continuation.resume()
+            }
+        }
+    }
+
+    func release() {
+        let waiter = self.lock.withLock { () -> CheckedContinuation<Void, Never>? in
+            self.isReleased = true
+            let waiter = self.releaseWaiter
+            self.releaseWaiter = nil
+            return waiter
+        }
+        waiter?.resume()
     }
 }

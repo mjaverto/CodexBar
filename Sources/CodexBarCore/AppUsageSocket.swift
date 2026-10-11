@@ -200,6 +200,8 @@ public enum AppUsageSocket {
 
 /// Same-user-only Unix socket that writes one `AppUsageSocketPayload` to each connecting client, then closes.
 /// The server never reads from clients. An exclusive `flock` on `<path>.lock` makes one instance the socket's owner.
+/// `stop()` revokes clients still waiting for or receiving their payload: they are shut down at once, no further byte
+/// is written to them, and `stop()` never waits on a client.
 public final class AppUsageSocketServer: @unchecked Sendable {
     private struct BoundFile {
         let device: dev_t
@@ -216,6 +218,12 @@ public final class AppUsageSocketServer: @unchecked Sendable {
     private var listenSource: DispatchSourceRead?
     private var boundFile: BoundFile?
     private var ownerLockFD: Int32?
+    /// Bumped by every `stop()`; a client is answered only while the listener generation that accepted it is current.
+    private var generation = 0
+    /// Accepted, peer-checked clients waiting for their payload. Only `finish` closes them, under `lock`.
+    private var pendingClients: Set<Int32> = []
+    /// Clients whose payload is being written outside `lock`. Only `finish` closes them, under `lock`.
+    private var inFlightClients: Set<Int32> = []
 
     public convenience init(
         path: String = AppUsageSocket.defaultPath,
@@ -294,9 +302,11 @@ public final class AppUsageSocketServer: @unchecked Sendable {
         }
         _ = fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK)
 
+        // Clients accepted by this listener belong to the generation it was started in.
+        let listenerGeneration = self.generation
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: self.queue)
         source.setEventHandler { [weak self] in
-            self?.acceptPendingClients(listenFD: fd)
+            self?.acceptPendingClients(listenFD: fd, generation: listenerGeneration)
         }
         source.setCancelHandler {
             close(fd)
@@ -311,6 +321,14 @@ public final class AppUsageSocketServer: @unchecked Sendable {
 
     public func stop() {
         self.lock.lock()
+        self.generation += 1
+        // Shut down instead of closing: `finish` still owns each descriptor, so a reused fd number is never touched.
+        // The server never reads, so only the write side is shut: a write in progress fails (EPIPE, SO_NOSIGPIPE set)
+        // and stop() never waits on a client. SHUT_RDWR would not do: Darwin returns ENOTCONN without shutting the
+        // write side when the peer has already half-closed (shutdown(SHUT_WR) on the client).
+        for clientFD in self.pendingClients.union(self.inFlightClients) {
+            shutdown(clientFD, SHUT_WR)
+        }
         let source = self.listenSource
         let boundFile = self.boundFile
         let lockFD = self.ownerLockFD
@@ -347,18 +365,18 @@ public final class AppUsageSocketServer: @unchecked Sendable {
         return fd
     }
 
-    private func acceptPendingClients(listenFD: Int32) {
+    private func acceptPendingClients(listenFD: Int32, generation: Int) {
         while true {
             let clientFD = accept(listenFD, nil, nil)
             if clientFD < 0 {
                 if errno == EINTR { continue }
                 return
             }
-            self.serve(clientFD)
+            self.serve(clientFD, generation: generation)
         }
     }
 
-    private func serve(_ clientFD: Int32) {
+    private func serve(_ clientFD: Int32, generation: Int) {
         _ = fcntl(clientFD, F_SETFD, FD_CLOEXEC)
         // Accepted sockets inherit the listener's O_NONBLOCK on Darwin; writes rely on SO_SNDTIMEO instead.
         _ = fcntl(clientFD, F_SETFL, fcntl(clientFD, F_GETFL) & ~O_NONBLOCK)
@@ -375,17 +393,55 @@ public final class AppUsageSocketServer: @unchecked Sendable {
             close(clientFD)
             return
         }
+        let accepted = self.lock.withLock {
+            guard self.listenSource != nil, generation == self.generation else { return false }
+            self.pendingClients.insert(clientFD)
+            return true
+        }
+        guard accepted else {
+            close(clientFD)
+            return
+        }
+        // A pending response keeps the server alive until it resolves, so every client is closed by `finish`.
         let payload = self.payload
         let queue = self.queue
         Task {
             let data = try? await payload().encoded()
             queue.async {
-                if let data {
-                    Self.writeAll(data, to: clientFD)
-                }
-                close(clientFD)
+                self.finish(clientFD, generation: generation, data: data)
             }
         }
+    }
+
+    /// Checks the client is still current under `lock`, writes without it, and closes under it again. Each fd stays
+    /// in exactly one of `pendingClients`/`inFlightClients` until closed, so `stop()` can shut it down safely.
+    private func finish(_ clientFD: Int32, generation: Int, data: Data?) {
+        let writable: Data? = self.lock.withLock {
+            self.pendingClients.remove(clientFD)
+            guard generation == self.generation, self.listenSource != nil, let data else {
+                if generation != self.generation {
+                    Self.log.debug("Dropped app usage socket response after stop")
+                }
+                close(clientFD)
+                return nil
+            }
+            self.inFlightClients.insert(clientFD)
+            return data
+        }
+        guard let writable else { return }
+        Self.writeAll(writable, to: clientFD)
+        self.lock.withLock {
+            self.inFlightClients.remove(clientFD)
+            close(clientFD)
+        }
+    }
+
+    var pendingClientCount: Int {
+        self.lock.withLock { self.pendingClients.count }
+    }
+
+    var inFlightClientCount: Int {
+        self.lock.withLock { self.inFlightClients.count }
     }
 
     private static func writeAll(_ data: Data, to fd: Int32) {
