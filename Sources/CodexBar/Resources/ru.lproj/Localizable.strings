@@ -701,6 +701,8 @@
 "keychain_access_caption" = "Отключает все операции чтения и записи Keychain. Используйте это, если macOS продолжает запрашивать «Chrome/Brave/Edge Safe Storage» даже после нажатия «Всегда разрешать». Импорт cookie браузера недоступен, пока настройка включена; вставьте заголовки Cookie вручную в разделе «Провайдеры». Claude/Codex OAuth через CLI по-прежнему работает.";
 "disable_keychain_access_title" = "Отключить доступ к Keychain";
 "disable_keychain_access_subtitle" = "Блокирует любой доступ к Keychain, пока настройка включена.";
+"share_usage_with_cli_title" = "Делиться использованием с codexbar в сеансах SSH";
+"share_usage_with_cli_subtitle" = "Позволяет codexbar CLI в SSH и других сеансах без графического интерфейса на этом Mac использовать последние данные об использовании из этого приложения, если CLI не может сам получить использование провайдера. Только для того же пользователя macOS; учетные данные и данные, идентифицирующие аккаунт, никогда не передаются.";
 "Re-authenticate" = "Повторно пройти аутентификацию";
 "kiro_reauthenticate_title" = "Вход в Kiro CLI";
 "kiro_reauthenticate_subtitle" = "Запускает «kiro-cli login», чтобы обновить истёкший сеанс.";

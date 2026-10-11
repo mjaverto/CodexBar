@@ -697,6 +697,8 @@
 "keychain_access_caption" = "キーチェーンの読み書きをすべて無効にします。「常に許可」をクリックしても macOS が「Chrome/Brave/Edge Safe Storage」のプロンプトを表示し続ける場合に使用してください。有効中はブラウザの Cookie 読み込みが利用できないため、プロバイダで Cookie ヘッダーを手動で貼り付けてください。CLI 経由の Claude/Codex OAuth は引き続き動作します。";
 "disable_keychain_access_title" = "キーチェーンアクセスを無効にする";
 "disable_keychain_access_subtitle" = "有効中はキーチェーンへのアクセスを一切行いません。";
+"share_usage_with_cli_title" = "SSH セッションの codexbar と使用量を共有";
+"share_usage_with_cli_subtitle" = "この Mac 上の SSH などの GUI のないセッションで codexbar CLI がプロバイダーの使用量を自分で取得できない場合に、このアプリの最新の使用量を使えるようにします。同じ macOS ユーザーのみ。資格情報やアカウントの識別情報は共有されません。";
 "Re-authenticate" = "再認証";
 "kiro_reauthenticate_title" = "Kiro CLI ログイン";
 "kiro_reauthenticate_subtitle" = "セッションの有効期限が切れたときに「kiro-cli login」を実行して更新します。";

@@ -697,6 +697,8 @@
 "keychain_access_caption" = "Desativa todas as leituras e gravações do Keychain. A importação de cookies do navegador fica indisponível; cole cabeçalhos Cookie manualmente em Provedores.";
 "disable_keychain_access_title" = "Desativar acesso ao Keychain";
 "disable_keychain_access_subtitle" = "Impede qualquer acesso ao Keychain quando ativado.";
+"share_usage_with_cli_title" = "Compartilhar uso com o codexbar em sessões SSH";
+"share_usage_with_cli_subtitle" = "Permite que a CLI codexbar no SSH e em outras sessões sem interface gráfica neste Mac use o uso mais recente deste app quando não conseguir obter sozinha o uso de um provedor. Somente para o mesmo usuário do macOS; nunca compartilha credenciais nem a identidade da conta.";
 "Re-authenticate" = "Autenticar novamente";
 "kiro_reauthenticate_title" = "Login no Kiro CLI";
 "kiro_reauthenticate_subtitle" = "Executa “kiro-cli login” para renovar sua sessão quando ela expirar.";

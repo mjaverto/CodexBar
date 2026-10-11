@@ -706,6 +706,8 @@
 "keychain_access_caption" = "تمام قابلیت های خواندن و نوشتن Keychain را غیرفعال کنید. اگر macOS حتی بعد از کلیک روی همیشه اجازه مدام درخواست «ذخیره سازی امن» Chrome/Brave/Edge کند، از این گزینه استفاده کنید. وارد کردن کوکی مرورگر در حالت فعال بودن در دسترس نیست؛ هدرهای کوکی را به صورت دستی در Providers پیست کنید. Claude/Codex OAuth از طریق CLI هنوز کار می کند.";
 "disable_keychain_access_title" = "غیرفعال کردن دسترسی Keychain";
 "disable_keychain_access_subtitle" = "در حالت فعال بودن از هرگونه دسترسی Keychain جلوگیری می کند.";
+"share_usage_with_cli_title" = "اشتراک‌گذاری استفاده با codexbar در جلسات SSH";
+"share_usage_with_cli_subtitle" = "به CLI codexbar در SSH و سایر جلسات غیرگرافیکی روی این مک اجازه می‌دهد وقتی خودش نمی‌تواند استفادهٔ یک ارائه دهنده را دریافت کند، از آخرین داده‌های استفادهٔ این برنامه استفاده کند. فقط برای همان کاربر macOS؛ هرگز اعتبارنامه‌ها یا هویت حساب را به اشتراک نمی‌گذارد.";
 "Re-authenticate" = "احراز هویت مجدد";
 "kiro_reauthenticate_title" = "ورود به Kiro CLI";
 "kiro_reauthenticate_subtitle" = "برای تازه‌سازی نشست منقضی‌شده، «kiro-cli login» را اجرا می‌کند.";

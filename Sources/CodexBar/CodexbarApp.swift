@@ -457,7 +457,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             missingItemRetriesRemaining: Self.settingsMenuReadinessRetryCount,
             fallbackVerificationRetriesRemaining: Self.settingsMenuFallbackVerificationRetryCount)
         self.cloudSyncCoordinator?.start()
-        self.startAppUsageSocketServer()
+        self.observeAppUsageSocketSetting()
         Task { @MainActor [weak self] in
             await Task.yield()
             guard let settings = self?.settings else { return }
@@ -529,13 +529,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.cloudSyncCoordinator?.applicationDidBecomeActive()
     }
 
-    /// Lets non-GUI `codexbar usage` runs (e.g. over SSH) read this app's usage over a same-user socket.
-    private func startAppUsageSocketServer() {
+    /// Opt-in (Settings → Advanced): lets non-GUI `codexbar usage` runs (e.g. over SSH) read this app's usage over a
+    /// same-user socket. The server follows the setting at runtime.
+    private func observeAppUsageSocketSetting() {
         // Tests must never bind the real ~/Library/Application Support/CodexBar/app-usage.sock.
-        guard !SettingsStore.isRunningTests,
-              self.appUsageSocketServer == nil,
-              let store = self.store
-        else { return }
+        guard !SettingsStore.isRunningTests, let settings else { return }
+        let enabled = withObservationTracking {
+            settings.shareUsageWithCLI
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.observeAppUsageSocketSetting()
+            }
+        }
+        self.setAppUsageSocketServerRunning(enabled)
+    }
+
+    private func setAppUsageSocketServerRunning(_ running: Bool) {
+        guard running else {
+            self.appUsageSocketServer?.stop()
+            self.appUsageSocketServer = nil
+            return
+        }
+        guard self.appUsageSocketServer == nil, let store = self.store else { return }
         let server = AppUsageSocketServer { [weak store] in
             await store?.appUsageSocketPayload() ?? AppUsageSocketPayload(providers: [])
         }

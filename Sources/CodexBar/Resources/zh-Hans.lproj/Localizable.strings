@@ -668,6 +668,8 @@
 "keychain_access_caption" = "禁用所有钥匙串读写。浏览器 Cookie 导入不可用；请在“提供商”中手动粘贴 Cookie 标头。";
 "disable_keychain_access_title" = "禁用钥匙串访问";
 "disable_keychain_access_subtitle" = "启用时阻止任何钥匙串访问。";
+"share_usage_with_cli_title" = "在 SSH 会话中与 codexbar 共享用量";
+"share_usage_with_cli_subtitle" = "当此 Mac 上 SSH 和其他非图形界面会话中的 codexbar CLI 无法自行获取某个提供商的用量时，允许其使用此应用的最新用量。仅限同一 macOS 用户；绝不共享凭据或账户身份。";
 "Re-authenticate" = "重新认证";
 "kiro_reauthenticate_title" = "Kiro CLI 登录";
 "kiro_reauthenticate_subtitle" = "会在会话过期时运行“kiro-cli login”以续期。";

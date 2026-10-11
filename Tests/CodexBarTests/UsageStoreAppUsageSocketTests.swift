@@ -21,20 +21,6 @@ struct UsageStoreAppUsageSocketTests {
         #expect(payload.provider(.claude)?.credits == nil)
     }
 
-    @Test
-    func `payload strips account identity but keeps the plan`() throws {
-        let store = Self.makeStore()
-        store.settings.hidePersonalInfo = false
-        store._setSnapshotForTesting(Self.usage(provider: .claude), provider: .claude)
-
-        let usage = try #require(store.appUsageSocketPayload().provider(.claude)?.usage)
-
-        #expect(usage.loginMethod(for: .claude) == "Max")
-        #expect(usage.accountEmail(for: .claude) == nil)
-        #expect(usage.accountOrganization(for: .claude) == nil)
-        #expect(usage.identity?.accountID == nil)
-    }
-
     private static func makeStore() -> UsageStore {
         let settings = testSettingsStore(
             suiteName: "UsageStoreAppUsageSocketTests",
@@ -56,9 +42,8 @@ struct UsageStoreAppUsageSocketTests {
             updatedAt: Date(timeIntervalSince1970: 1_800_000_000),
             identity: ProviderIdentitySnapshot(
                 providerID: provider.instanceID,
-                accountEmail: "fixture@example.com",
-                accountOrganization: "Fixture Org",
-                loginMethod: "Max",
-                accountID: "acct-fixture"))
+                accountEmail: nil,
+                accountOrganization: nil,
+                loginMethod: nil))
     }
 }

@@ -708,6 +708,8 @@
 "keychain_access_caption" = "Disattiva tutte le letture e scritture del Portachiavi. Usalo se macOS continua a chiedere accesso a 'Chrome/Brave/Edge Safe Storage' anche dopo aver scelto Consenti sempre. Quando è attivo, l'importazione dei cookie dal browser non è disponibile; incolla manualmente gli header Cookie in Provider. L'OAuth di Claude/Codex tramite CLI continua a funzionare.";
 "disable_keychain_access_title" = "Disattiva accesso Portachiavi";
 "disable_keychain_access_subtitle" = "Impedisce qualsiasi accesso al Portachiavi quando attivo.";
+"share_usage_with_cli_title" = "Condividi l'utilizzo con codexbar nelle sessioni SSH";
+"share_usage_with_cli_subtitle" = "Consente alla CLI codexbar in SSH e in altre sessioni senza interfaccia grafica su questo Mac di usare l'utilizzo più recente di questa app quando non riesce a recuperare da sola l'utilizzo di un provider. Solo per lo stesso utente macOS; non condivide mai credenziali o l'identità dell'account.";
 "Re-authenticate" = "Ripeti l’autenticazione";
 "kiro_reauthenticate_title" = "Accesso a Kiro CLI";
 "kiro_reauthenticate_subtitle" = "Esegue “kiro-cli login” per rinnovare la sessione quando è scaduta.";

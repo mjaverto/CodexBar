@@ -619,6 +619,12 @@ extension SettingsStore {
         set { self.setDefault(\.hidePersonalInfo, newValue, key: "hidePersonalInfo") }
     }
 
+    /// Opt-in: serve usage numbers to same-user `codexbar` runs in non-GUI sessions (e.g. SSH).
+    var shareUsageWithCLI: Bool {
+        get { self.defaultsState.shareUsageWithCLI }
+        set { self.setDefault(\.shareUsageWithCLI, newValue, key: "shareUsageWithCLI") }
+    }
+
     var randomBlinkEnabled: Bool {
         get { self.defaultsState.randomBlinkEnabled }
         set { self.setDefault(\.randomBlinkEnabled, newValue, key: "randomBlinkEnabled") }

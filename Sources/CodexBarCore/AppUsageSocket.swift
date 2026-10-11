@@ -4,7 +4,8 @@ import Foundation
 
 /// Usage the running menu bar app publishes for same-user CLI processes that cannot read login-keychain secrets
 /// (for example `codexbar usage` over SSH). A private app-to-CLI channel whose format can change in any release.
-/// Carries usage and plan only; never credentials or account email, organization, or ID.
+/// Carries usage figures with their window and limit labels; never credentials, account identity, plan, or detail
+/// rows (except Amp's allowance rows).
 public struct AppUsageSocketPayload: Codable, Sendable {
     public struct Provider: Codable, Sendable {
         /// `UsageProvider.rawValue`; a string so providers unknown to an older CLI don't break decoding.
@@ -12,10 +13,57 @@ public struct AppUsageSocketPayload: Codable, Sendable {
         public let usage: UsageSnapshot
         public let credits: CreditsSnapshot?
 
-        public init(provider: UsageProvider, usage: UsageSnapshot, credits: CreditsSnapshot?) {
+        /// Stores an allowlisted projection so no producer can put identity or free-form provider data on the wire:
+        /// rate windows (with their labels), spend, Codex credit balance and cap, reset and renewal dates, and
+        /// timestamps. Returns nil when nothing numeric is left, so the CLI keeps its local error instead.
+        public init?(provider: UsageProvider, usage: UsageSnapshot, credits: CreditsSnapshot?) {
+            let usage = Self.usageFigures(usage, provider: provider)
+            guard usage.hasRateLimitWindows || usage.providerCost != nil || credits != nil else { return nil }
             self.provider = provider.rawValue
             self.usage = usage
-            self.credits = credits
+            self.credits = credits.map(Self.creditFigures)
+        }
+
+        /// Built field by field so new `UsageSnapshot` fields stay off the wire until they are allowlisted here.
+        private static func usageFigures(_ usage: UsageSnapshot, provider: UsageProvider) -> UsageSnapshot {
+            // Provider-specific by design: Amp's window labels depend on its constant-labelled allowance rows.
+            let details = provider == .amp
+                ? usage.details.filter { $0.title == AmpUsageSnapshot.monthlyAllowancesSectionTitle }
+                : []
+            return UsageSnapshot(
+                primary: usage.primary,
+                secondary: usage.secondary,
+                tertiary: usage.tertiary,
+                extraRateWindows: usage.extraRateWindows,
+                providerCost: usage.providerCost,
+                details: details,
+                copilotMeteredZeroCredits: usage.copilotMeteredZeroCredits,
+                subscriptionExpiresAt: usage.subscriptionExpiresAt,
+                subscriptionRenewsAt: usage.subscriptionRenewsAt,
+                subscriptionRenewsAtIsDateOnly: usage.subscriptionRenewsAtIsDateOnly,
+                subscriptionExpiresAtIsDateOnly: usage.subscriptionExpiresAtIsDateOnly,
+                updatedAt: usage.updatedAt,
+                identity: usage.identity.map { identity in
+                    ProviderIdentitySnapshot(
+                        providerID: identity.providerID,
+                        accountEmail: nil,
+                        accountOrganization: nil,
+                        loginMethod: nil)
+                },
+                dataConfidence: usage.dataConfidence)
+        }
+
+        /// Balance and cap only: events carry service names and are dropped. The cap passes through unchanged; its
+        /// title is the same limit label Codex spend already carries in `providerCost.period`.
+        private static func creditFigures(_ credits: CreditsSnapshot) -> CreditsSnapshot {
+            CreditsSnapshot(
+                remaining: credits.remaining,
+                events: [],
+                updatedAt: credits.updatedAt,
+                codexCreditLimit: credits.codexCreditLimit,
+                balanceReadSucceeded: credits.balanceReadSucceeded,
+                creditsAvailable: credits.creditsAvailable,
+                balanceIsWorkspace: credits.balanceIsWorkspace)
         }
     }
 
@@ -64,7 +112,7 @@ public enum AppUsageSocket {
     public static func read(path: String = defaultPath, timeout: TimeInterval = 2) -> AppUsageSocketPayload? {
         guard let fd = self.connectedSocket(path: path, timeout: timeout) else { return nil }
         defer { close(fd) }
-        guard self.peerIsCurrentUser(fd) else { return nil }
+        guard self.peerUID(fd) == geteuid() else { return nil }
 
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 64 * 1024)
@@ -141,40 +189,53 @@ public enum AppUsageSocket {
         return true
     }
 
-    static func peerIsCurrentUser(_ fd: Int32) -> Bool {
+    static func peerUID(_ fd: Int32) -> uid_t? {
         var uid: uid_t = 0
         var gid: gid_t = 0
-        return getpeereid(fd, &uid, &gid) == 0 && uid == geteuid()
+        return getpeereid(fd, &uid, &gid) == 0 ? uid : nil
     }
 }
 
 // MARK: - Server
 
 /// Same-user-only Unix socket that writes one `AppUsageSocketPayload` to each connecting client, then closes.
-/// The server never reads from clients.
+/// The server never reads from clients. An exclusive `flock` on `<path>.lock` makes one instance the socket's owner.
 public final class AppUsageSocketServer: @unchecked Sendable {
     private struct BoundFile {
         let device: dev_t
         let inode: ino_t
     }
 
+    private static let log = CodexBarLog.logger(LogCategories.app)
+
     private let path: String
+    private let ownerUID: uid_t
     private let payload: @Sendable () async -> AppUsageSocketPayload
     private let queue = DispatchQueue(label: "com.steipete.codexbar.app-usage-socket")
     private let lock = NSLock()
     private var listenSource: DispatchSourceRead?
     private var boundFile: BoundFile?
+    private var ownerLockFD: Int32?
 
-    public init(
+    public convenience init(
         path: String = AppUsageSocket.defaultPath,
         payload: @escaping @Sendable () async -> AppUsageSocketPayload)
     {
+        self.init(path: path, ownerUID: geteuid(), payload: payload)
+    }
+
+    init(path: String, ownerUID: uid_t, payload: @escaping @Sendable () async -> AppUsageSocketPayload) {
         self.path = path
+        self.ownerUID = ownerUID
         self.payload = payload
     }
 
     deinit {
         self.stop()
+    }
+
+    static func ownerLockPath(forSocketPath path: String) -> String {
+        path + ".lock"
     }
 
     public func start() throws {
@@ -192,14 +253,17 @@ public final class AppUsageSocketServer: @unchecked Sendable {
                 withIntermediateDirectories: true,
                 attributes: [.posixPermissions: 0o700])
         }
-        // Never steal a live listener (another running instance); remove only a stale socket nobody answers.
-        // Any other file type is left in place and makes bind fail.
+        // Held until stop(): another instance (even one paused before listen) keeps the socket path untouched.
+        let lockFD = try Self.acquireOwnerLock(path: Self.ownerLockPath(forSocketPath: self.path))
+        var ownsLock = true
+        defer {
+            if ownsLock {
+                close(lockFD)
+            }
+        }
+        // As the lock holder, any socket left at the path is stale. Other file types stay and make bind fail.
         var existing = stat()
         if lstat(self.path, &existing) == 0, existing.st_mode & S_IFMT == S_IFSOCK {
-            if let probe = AppUsageSocket.connectedSocket(path: self.path, timeout: 1) {
-                close(probe)
-                throw POSIXError(.EADDRINUSE)
-            }
             unlink(self.path)
         }
 
@@ -238,8 +302,10 @@ public final class AppUsageSocketServer: @unchecked Sendable {
             close(fd)
         }
         ownsFD = false
+        ownsLock = false
         self.listenSource = source
         self.boundFile = BoundFile(device: bindFile.st_dev, inode: bindFile.st_ino)
+        self.ownerLockFD = lockFD
         source.resume()
     }
 
@@ -247,8 +313,10 @@ public final class AppUsageSocketServer: @unchecked Sendable {
         self.lock.lock()
         let source = self.listenSource
         let boundFile = self.boundFile
+        let lockFD = self.ownerLockFD
         self.listenSource = nil
         self.boundFile = nil
+        self.ownerLockFD = nil
         self.lock.unlock()
 
         guard let source else { return }
@@ -262,6 +330,21 @@ public final class AppUsageSocketServer: @unchecked Sendable {
         {
             unlink(self.path)
         }
+        // Closing the descriptor releases the flock; the lock file itself stays for the next owner.
+        if let lockFD {
+            close(lockFD)
+        }
+    }
+
+    private static func acquireOwnerLock(path: String) throws -> Int32 {
+        let fd = open(path, O_RDWR | O_CREAT | O_CLOEXEC | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { throw Self.posixError() }
+        guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+            let code = errno
+            close(fd)
+            throw code == EWOULDBLOCK ? POSIXError(.EADDRINUSE) : POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)
+        }
+        return fd
     }
 
     private func acceptPendingClients(listenFD: Int32) {
@@ -279,9 +362,16 @@ public final class AppUsageSocketServer: @unchecked Sendable {
         _ = fcntl(clientFD, F_SETFD, FD_CLOEXEC)
         // Accepted sockets inherit the listener's O_NONBLOCK on Darwin; writes rely on SO_SNDTIMEO instead.
         _ = fcntl(clientFD, F_SETFL, fcntl(clientFD, F_GETFL) & ~O_NONBLOCK)
-        guard AppUsageSocket.configure(clientFD, timeoutOption: SO_SNDTIMEO, timeout: 2),
-              AppUsageSocket.peerIsCurrentUser(clientFD)
-        else {
+        guard AppUsageSocket.configure(clientFD, timeoutOption: SO_SNDTIMEO, timeout: 2) else {
+            close(clientFD)
+            return
+        }
+        // Checked before the payload is built or any byte is written.
+        let peerUID = AppUsageSocket.peerUID(clientFD)
+        guard peerUID == self.ownerUID else {
+            Self.log.warning(
+                "Rejected app usage socket peer",
+                metadata: ["uid": peerUID.map { String($0) } ?? "unknown"])
             close(clientFD)
             return
         }

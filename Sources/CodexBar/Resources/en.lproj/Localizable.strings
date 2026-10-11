@@ -689,6 +689,8 @@
 "keychain_access_caption" = "Blocks CodexBar's Security.framework reads and writes and Chromium Safe Storage decryption. Provider-owned CLIs launched for usage may still access credentials under their own policy. Use manual cookies, API keys, or files where supported.";
 "disable_keychain_access_title" = "Disable Keychain access";
 "disable_keychain_access_subtitle" = "Blocks CodexBar-owned Keychain access and browser-cookie decryption.";
+"share_usage_with_cli_title" = "Share usage with codexbar in SSH sessions";
+"share_usage_with_cli_subtitle" = "Lets the codexbar CLI in SSH and other non-GUI sessions on this Mac use this app's latest usage when it can't fetch a provider's usage itself. Same macOS user only; never shares credentials or account identity.";
 "Re-authenticate" = "Re-authenticate";
 "kiro_reauthenticate_title" = "Kiro CLI login";
 "kiro_reauthenticate_subtitle" = "Runs 'kiro-cli login' to refresh your session when it has expired.";

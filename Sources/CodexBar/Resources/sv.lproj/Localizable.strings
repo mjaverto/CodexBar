@@ -699,6 +699,8 @@
 "keychain_access_caption" = "Inaktivera all läsning och skrivning i Nyckelring. Använd detta om macOS fortsätter fråga om 'Chrome/Brave/Edge Safe Storage' även efter att du klickat på Tillåt alltid. Import av webbläsarcookies är inte tillgänglig när detta är aktiverat. Klistra in Cookie-headers manuellt under Leverantörer. Claude/Codex OAuth via CLI fungerar fortfarande.";
 "disable_keychain_access_title" = "Inaktivera åtkomst till Nyckelring";
 "disable_keychain_access_subtitle" = "Förhindrar all åtkomst till Nyckelring när det är aktiverat.";
+"share_usage_with_cli_title" = "Dela användning med codexbar i SSH-sessioner";
+"share_usage_with_cli_subtitle" = "Låter codexbar-CLI i SSH och andra sessioner utan grafiskt gränssnitt på den här Macen använda appens senaste användning när den inte själv kan hämta en leverantörs användning. Endast samma macOS-användare; delar aldrig inloggningsuppgifter eller kontoidentitet.";
 "Re-authenticate" = "Autentisera igen";
 "kiro_reauthenticate_title" = "Kiro CLI-inloggning";
 "kiro_reauthenticate_subtitle" = "Kör ”kiro-cli login” för att förnya sessionen när den har löpt ut.";

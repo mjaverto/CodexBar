@@ -201,6 +201,8 @@ window has elapsed, including when Codex historical tracking predicts less than 
 Runs out tokens remain hidden until 3% of their window has elapsed.
 
 ## Preferences notes
+- Advanced: “Share usage with codexbar in SSH sessions” (off by default) lets same-user `codexbar` runs in non-GUI
+  sessions use the app's latest usage figures when a provider cannot be fetched there; see `docs/cli.md`.
 - Advanced: “Disable Keychain access” turns off browser cookie import; paste Cookie headers manually in Providers.
 - Advanced: “Show provider storage usage” enables background scans of known provider-owned local paths; CodexBar only
   reports sizes and cleanup ideas, it does not delete files.

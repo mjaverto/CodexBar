@@ -48,6 +48,9 @@ public struct AmpSubscriptionUsage: Equatable, Sendable {
 }
 
 public struct AmpUsageSnapshot: Sendable {
+    /// Detail section holding the constant-labelled Agent/Orb allowance rows (no workspace or account names).
+    public static let monthlyAllowancesSectionTitle = "Monthly allowances"
+
     public let freeQuota: Double?
     public let freeUsed: Double?
     public let hourlyReplenishment: Double?
@@ -172,7 +175,7 @@ extension AmpUsageSnapshot {
                 secondaryValue: "a1.small-equivalent hours"))
         }
         var details: [ProviderDetailSection] = allowanceRows.isEmpty ? [] : [.makeSection(
-            title: "Monthly allowances",
+            title: Self.monthlyAllowancesSectionTitle,
             rows: allowanceRows)]
 
         var detailRows: [ProviderDetailSection.Row] = []

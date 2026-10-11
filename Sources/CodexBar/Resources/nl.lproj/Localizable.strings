@@ -700,6 +700,8 @@
 "keychain_access_caption" = "Schakel alle lees- en schrijfbewerkingen van de sleutelhanger uit. Gebruik dit als macOS blijft vragen om 'Chrome/Brave/Edge Safe Storage', zelfs nadat u op Altijd toestaan ​​hebt geklikt. Browsercookie-import is niet beschikbaar als deze is ingeschakeld; plak Cookie-headers handmatig in Providers. Claude/Codex OAuth via de CLI werkt nog steeds.";
 "disable_keychain_access_title" = "Schakel sleutelhangertoegang uit";
 "disable_keychain_access_subtitle" = "Voorkomt elke sleutelhangertoegang indien ingeschakeld.";
+"share_usage_with_cli_title" = "Gebruik delen met codexbar in SSH-sessies";
+"share_usage_with_cli_subtitle" = "Laat de codexbar-CLI in SSH- en andere niet-grafische sessies op deze Mac het nieuwste gebruik van deze app gebruiken wanneer die het gebruik van een provider niet zelf kan ophalen. Alleen voor dezelfde macOS-gebruiker; deelt nooit inloggegevens of de accountidentiteit.";
 "Re-authenticate" = "Opnieuw authenticeren";
 "kiro_reauthenticate_title" = "Aanmelden bij Kiro CLI";
 "kiro_reauthenticate_subtitle" = "Voert 'kiro-cli login' uit om je sessie te vernieuwen wanneer deze is verlopen.";

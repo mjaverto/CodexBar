@@ -708,6 +708,8 @@
 "keychain_access_caption" = "Nonaktifkan semua pembacaan dan penulisan Keychain. Gunakan ini jika macOS terus meminta 'Chrome/Brave/Edge Safe Storage' meskipun sudah mengklik Always Allow. Impor cookie browser tidak tersedia saat diaktifkan; tempel header Cookie secara manual di Penyedia. OAuth Claude/Codex via CLI masih berfungsi.";
 "disable_keychain_access_title" = "Nonaktifkan akses Keychain";
 "disable_keychain_access_subtitle" = "Mencegah semua akses Keychain saat diaktifkan.";
+"share_usage_with_cli_title" = "Bagikan penggunaan dengan codexbar di sesi SSH";
+"share_usage_with_cli_subtitle" = "Memungkinkan CLI codexbar di SSH dan sesi non-GUI lainnya di Mac ini memakai penggunaan terbaru dari aplikasi ini saat CLI tidak dapat mengambil penggunaan penyedia sendiri. Hanya untuk pengguna macOS yang sama; tidak pernah membagikan kredensial atau identitas akun.";
 "Re-authenticate" = "Autentikasi ulang";
 "kiro_reauthenticate_title" = "Login Kiro CLI";
 "kiro_reauthenticate_subtitle" = "Menjalankan 'kiro-cli login' untuk memperbarui sesi saat kedaluwarsa.";

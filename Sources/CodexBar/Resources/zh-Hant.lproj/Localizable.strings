@@ -698,6 +698,8 @@
 "keychain_access_caption" = "停用所有鑰匙圈讀寫。如果 macOS 在你按下一律允許後仍持續要求存取「Chrome/Brave/Edge Safe Storage」，可使用此選項。啟用時無法匯入瀏覽器 Cookie；請在「提供者」中手動貼上 Cookie 標頭。透過 CLI 的 Claude/Codex OAuth 仍可使用。";
 "disable_keychain_access_title" = "停用鑰匙圈存取";
 "disable_keychain_access_subtitle" = "啟用時封鎖任何鑰匙圈存取。";
+"share_usage_with_cli_title" = "在 SSH 工作階段中與 codexbar 共享用量";
+"share_usage_with_cli_subtitle" = "當此 Mac 上 SSH 和其他非圖形介面工作階段中的 codexbar CLI 無法自行取得某個提供者的用量時，允許其使用此 App 的最新用量。僅限同一 macOS 使用者；絕不共享憑證或帳號身分。";
 "Re-authenticate" = "重新驗證";
 "kiro_reauthenticate_title" = "Kiro CLI 登入";
 "kiro_reauthenticate_subtitle" = "會在工作階段過期時執行「kiro-cli login」以續期。";

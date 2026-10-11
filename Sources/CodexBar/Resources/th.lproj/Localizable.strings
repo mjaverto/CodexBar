@@ -706,6 +706,8 @@
 "keychain_access_caption" = "ปิดใช้งานการอ่านและเขียน Keychain ทั้งหมด ใช้ตัวเลือกนี้หาก macOS ยังคงแจ้งให้ 'Chrome/Brave/Edge ที่เก็บข้อมูลที่ปลอดภัย' แม้ว่าจะคลิกอนุญาตเสมอแล้วก็ตาม การนําเข้าคุกกี้ของเบราว์เซอร์ไม่พร้อมใช้งานในขณะที่เปิดใช้งาน วางส่วนหัวของคุกกี้ด้วยตนเองในผู้ให้บริการ Claude/Codex OAuth ผ่าน CLI ยังคงใช้งานได้";
 "disable_keychain_access_title" = "ปิดใช้งานการเข้าถึง Keychain";
 "disable_keychain_access_subtitle" = "ป้องกันการเข้าถึง Keychain ใดๆ ขณะเปิดใช้งาน";
+"share_usage_with_cli_title" = "แชร์การใช้งานกับ codexbar ในเซสชัน SSH";
+"share_usage_with_cli_subtitle" = "อนุญาตให้ codexbar CLI ใน SSH และเซสชันอื่นที่ไม่มี GUI บน Mac เครื่องนี้ใช้ข้อมูลการใช้งานล่าสุดของแอปนี้ เมื่อ CLI ไม่สามารถดึงการใช้งานของผู้ให้บริการได้เอง เฉพาะผู้ใช้ macOS เดียวกันเท่านั้น และจะไม่แชร์ข้อมูลรับรองหรือข้อมูลระบุตัวตนของบัญชี";
 "Re-authenticate" = "ยืนยันตัวตนอีกครั้ง";
 "kiro_reauthenticate_title" = "เข้าสู่ระบบ Kiro CLI";
 "kiro_reauthenticate_subtitle" = "เรียกใช้ “kiro-cli login” เพื่อต่ออายุเซสชันเมื่อหมดอายุ";

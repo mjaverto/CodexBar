@@ -18,6 +18,18 @@ struct SettingsPersistenceContractTests {
     }
 
     @Test
+    func `usage sharing with codexbar defaults off and persists both choices`() {
+        let defaults = InMemoryUserDefaults()
+        let settings = testSettingsStore(suiteName: #function, userDefaults: defaults)
+        #expect(!settings.shareUsageWithCLI)
+        settings.shareUsageWithCLI = true
+        let reloaded = testSettingsStore(suiteName: #function, userDefaults: defaults)
+        #expect(reloaded.shareUsageWithCLI)
+        reloaded.shareUsageWithCLI = false
+        #expect(!testSettingsStore(suiteName: #function, userDefaults: defaults).shareUsageWithCLI)
+    }
+
+    @Test
     func `optional and raw preferences round trip without boxed nil values`() {
         let defaults = InMemoryUserDefaults()
         let settings = testSettingsStore(suiteName: #function, userDefaults: defaults)

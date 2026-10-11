@@ -706,6 +706,8 @@
 "keychain_access_caption" = "Tüm Anahtar Zinciri okuma ve yazma işlemlerini devre dışı bırakın. macOS, 'Chrome/Brave/Edge Güvenli Depolama' için sürekli istem gösteriyorsa ve Her Zaman İzin Ver'e tıkladıktan sonra bile bu istemler devam ediyorsa bu seçeneği kullanın. Etkinleştirildiğinde tarayıcı çerezleri içe aktarılamaz; çerez başlıklarını Sağlayıcılar bölümüne elle yapıştırın. CLI üzerinden Claude/Codex OAuth çalışmaya devam eder.";
 "disable_keychain_access_title" = "Anahtar Zinciri erişimini devre dışı bırak";
 "disable_keychain_access_subtitle" = "Etkinleştirildiğinde tüm Anahtar Zinciri erişimini engeller.";
+"share_usage_with_cli_title" = "Kullanımı SSH oturumlarındaki codexbar ile paylaş";
+"share_usage_with_cli_subtitle" = "Bu Mac'teki SSH ve grafik arayüzü olmayan diğer oturumlardaki codexbar CLI'nin, bir sağlayıcının kullanımını kendisi alamadığında bu uygulamanın en son kullanım verilerini kullanmasını sağlar. Yalnızca aynı macOS kullanıcısı; kimlik bilgilerini veya hesap kimliğini asla paylaşmaz.";
 "Re-authenticate" = "Yeniden kimlik doğrula";
 "kiro_reauthenticate_title" = "Kiro CLI oturumu";
 "kiro_reauthenticate_subtitle" = "Süreniz dolduğunda oturumunuzu yenilemek için 'kiro-cli login' komutunu çalıştırır.";

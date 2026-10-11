@@ -66,6 +66,7 @@ struct SettingsDefaultsState {
     var costComparisonPeriodsEnabled: Bool
     var costSummaryDisplayStyleRaw: String
     var hidePersonalInfo: Bool
+    var shareUsageWithCLI: Bool
     var randomBlinkEnabled: Bool
     var confettiOnSessionLimitResetsEnabled: Bool
     var confettiOnWeeklyLimitResetsEnabled: Bool

@@ -13,7 +13,7 @@ struct CLIAppUsageFallbackTests {
                 secondary: nil,
                 updatedAt: Date(timeIntervalSince1970: 1_800_000_000)),
             credits: nil),
-    ])
+    ].compactMap(\.self))
 
     @Test
     func `failed default fetch renders the app's usage as source codexbar app`() throws {
