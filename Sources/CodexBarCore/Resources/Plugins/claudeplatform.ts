@@ -24,7 +24,9 @@ defineProvider({
       expiresAt: Date | undefined;
     };
     const invalid = (field: string): never => {
-      throw ctx.fail.parseFailure(`Could not parse Claude Console ${field}.`);
+      throw ctx.fail.parseFailure(
+        `Could not parse Claude Console ${field}. The Console response format may have changed; update CodexBar or report this.`,
+      );
     };
     const object = (value: unknown, field: string): Record<string, unknown> =>
       value !== null && typeof value === "object" && !Array.isArray(value)
@@ -55,7 +57,9 @@ defineProvider({
       return `Expires ${year === now.getUTCFullYear() ? label : `${label}, ${year}`} (UTC)`;
     };
     const sessionRejected = ctx.fail.authenticationExpired("Claude Console session expired.");
-    const billingDenied = ctx.fail.permissionDenied("Claude Console billing access was denied.");
+    const billingDenied = ctx.fail.permissionDenied(
+      "Claude Console billing access was denied. Ask the organization owner for billing access.",
+    );
     let rejected = false;
     for await (const session of ctx.browser.sessions(domain)) {
       const request = async (path: string, forbidden: Error): Promise<unknown> => {
@@ -65,9 +69,15 @@ defineProvider({
         });
         if (response.status === 401) throw sessionRejected;
         if (response.status === 403) throw forbidden;
-        if (response.status === 429) throw ctx.fail.rateLimited("Claude Console requests are rate limited.");
-        if (response.status >= 500) throw ctx.fail.providerUnavailable("Claude Console is unavailable.");
-        if (response.status !== 200) throw ctx.fail.apiFailure(`Claude Console returned HTTP ${response.status}.`);
+        if (response.status === 429) {
+          throw ctx.fail.rateLimited("Claude Console requests are rate limited. Try again in a few minutes.");
+        }
+        if (response.status >= 500) {
+          throw ctx.fail.providerUnavailable("Claude Console is unavailable. Try again later.");
+        }
+        if (response.status !== 200) {
+          throw ctx.fail.apiFailure(`Claude Console returned HTTP ${response.status}. Try again later or report this.`);
+        }
         try {
           return JSON.parse(response.bodyText);
         } catch (error) {
