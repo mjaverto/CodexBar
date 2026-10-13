@@ -16,7 +16,7 @@
 - Providers: add fal account credit balances through its billing API, with explicit guidance for missing billing permissions (#4438). Thanks @giuseppebisemi!
 - Providers: add FLORA workspace balances, member limits, and available month-to-date spending through a bundled billing plugin (#4439). Thanks @giuseppebisemi!
 - Claude: independently select reset credits, Extra usage or prepaid Credits, and plan dates; preserve hidden resets when upgrading with optional usage disabled (#4484). Thanks @emanuelst!
-- Providers: add Claude Platform for Claude Console API credit balances, expiring subscription and purchased credit grants, and optional month-to-date spend, read from the platform.claude.com browser session because the Admin API is unavailable for individual accounts.
+- Providers: add Claude Platform for Claude Console API credit balances, expiring subscription and purchased credit grants, and optional month-to-date spend, read from the platform.claude.com browser session because the Admin API is unavailable for individual accounts (#4510). Thanks @mjaverto!
 
 - Codex CLI: add opt-in identified-request subtotals across local and SSH histories, deduplicating strong request identities and preserving partial results without estimating combined prices (#4447, refs #3036). Thanks @jkobject!
 
