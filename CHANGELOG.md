@@ -5,6 +5,14 @@
 ### Added
 
 - Providers: add Claude Platform for Console API credit balances, expiring subscription and purchased grants, and optional monthly spend, using its signed-in browser session (#4510). Thanks @mjaverto!
+### Changed
+
+- CLI: fetch usage from up to three providers concurrently while preserving output order, isolated failures, and refreshed credentials (#4501). Thanks @djbclark!
+
+### Fixed
+
+- Plugins: release temporary objects between QuickJS refreshes and free retired JavaScriptCore contexts and completed runtimes (#4512, #4486).
+- Claude: retain account emails from existing OAuth profile checks, even when the profile lacks organization details (#4493).
 
 ## 0.75.0 — 2026-10-13
 
