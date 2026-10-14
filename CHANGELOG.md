@@ -2,6 +2,10 @@
 
 ## 0.75.1 — Unreleased
 
+### Added
+
+- CLI: opt in with `"shareUsageWithCLI": true` in `config.json` so `codexbar usage` and `cards` in SSH and other non-GUI macOS sessions fall back to the app's last good numbers, from a private per-provider usage cache, when a provider's fetch fails on a locked keychain; rows report `source: codexbar-app` and `ageSeconds`.
+
 ### Fixed
 
 - Plugins: release temporary objects between QuickJS refreshes and free retired JavaScriptCore contexts and completed runtimes (#4512, #4486).

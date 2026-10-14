@@ -440,6 +440,29 @@ non-zero only when it cannot produce a valid snapshot document.
 - Safari cookie import may require granting CodexBar Full Disk Access (System Settings → Privacy & Security → Full Disk Access).
 - The `openaiDashboard` JSON field is normally sourced from the app’s cached dashboard snapshot; `--source auto|web` refreshes it live via WebKit using a per-account cookie store.
 
+## SSH and other non-GUI sessions (macOS)
+
+Over SSH (or any session without the GUI login session's graphic access), macOS does not unlock login-keychain
+secrets such as cached browser cookies, Chromium Safe Storage, or Claude Code credentials, so keychain-backed
+providers fail to fetch. Set `"shareUsageWithCLI": true` at the top level of `config.json` (off by default; there is
+no Settings pane for it) and the CodexBar app writes a private usage cache after each refresh. When a provider's own
+fetch fails in a non-GUI session because a Keychain read in that fetch hit a locked keychain (or the error itself
+carries a locked-keychain status), `codexbar usage` and `cards` report the app's last good numbers instead, as
+`"source": "codexbar-app"` with `"ageSeconds"` (seconds since the app fetched them); text output adds a note with the
+same age. Any other failure (a bad key, a 403, a network error) keeps its own error.
+
+- The cache is `~/Library/Application Support/CodexBar/CLIUsageCache/usage.json`: mode `0600` in a `0700` directory,
+  written atomically. It carries usage figures with their window labels, per-provider fetch times, and spend; no
+  credentials and no account identity fields (email, organization, account ID, plan). Codex credit balances are not
+  cached.
+- The CLI ignores the file unless it and its directory are owned by you and not group/world accessible, it is a
+  regular file (not a symlink), it decodes, and the provider's entry is at most one hour old.
+- The app caches only providers that use the default/system account (no selected token account, and Codex on its live
+  system account). The CLI applies it only to the default account without an explicit `--source`; token accounts
+  (`--account`, `--account-index`, or a configured active account) keep the local error. GUI sessions never use the
+  cache.
+- Turning the flag off makes the app delete the cache on its next refresh.
+
 ## Managed Codex accounts (macOS)
 
 `codexbar codex-accounts list --json` lists managed account UUIDs, emails, and whether each readable

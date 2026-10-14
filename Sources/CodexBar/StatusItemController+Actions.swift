@@ -104,6 +104,7 @@ extension StatusItemController: StatusItemMenuPersistentActionDelegate {
             }
             self.store.scheduleStorageFootprintRefresh(for: [provider], force: true)
             self.store.persistWidgetSnapshot(reason: "provider-refresh")
+            self.store.persistCLIUsageCache()
             if refreshOpenMenusWhenComplete {
                 self.refreshOpenMenusAfterExplicitStoreAction()
             } else {

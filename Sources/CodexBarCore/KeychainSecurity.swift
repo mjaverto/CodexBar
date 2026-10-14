@@ -89,6 +89,26 @@ enum KeychainLegacyInteraction {
     }
 }
 
+/// Remembers whether a Keychain read since the last `reset()` failed the way a locked keychain does. The CLI resets
+/// it before each provider fetch to tell a locked-keychain failure from any other.
+public enum KeychainLockWitness {
+    private static let lock = NSLock()
+    private nonisolated(unsafe) static var observed = false
+
+    static func note(_ status: OSStatus) {
+        guard status == errSecInteractionNotAllowed || status == errSecAuthFailed else { return }
+        self.lock.withLock { self.observed = true }
+    }
+
+    public static func reset() {
+        self.lock.withLock { self.observed = false }
+    }
+
+    public static var didObserveLockedKeychain: Bool {
+        self.lock.withLock { self.observed }
+    }
+}
+
 /// The only first-party entry point for Security.framework item operations.
 /// Test processes fail closed before touching the user's Keychain, even when a test enables
 /// higher-level Keychain logic with `KeychainAccessGate.withTaskOverrideForTesting(false)`.
@@ -128,7 +148,9 @@ public enum KeychainSecurity {
         guard self.currentItemOperationBlockReason() == nil else {
             return errSecInteractionNotAllowed
         }
-        return SecItemCopyMatching(query, result)
+        let status = SecItemCopyMatching(query, result)
+        KeychainLockWitness.note(status)
+        return status
     }
 
     public static func update(_ query: CFDictionary, _ attributesToUpdate: CFDictionary) -> OSStatus {

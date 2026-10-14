@@ -27,6 +27,15 @@ struct UsageCommandContext {
     var persistCLISessions: Bool = false
     var persistentCLISessionIdleWindow: TimeInterval?
     var cardsLayout: Bool = false
+    /// Serves the menu bar app's cached usage after a locked-keychain fetch failure (SSH sessions, opt-in).
+    var usageCacheFallback: (@Sendable (UsageProvider, Error) -> CLIUsageCache.Hit?)?
+
+    /// Enabled only when the user opted in (`shareUsageWithCLI`) and this is a non-GUI session such as SSH.
+    func withUsageCacheFallback(config: CodexBarConfig) -> UsageCommandContext {
+        var context = self
+        context.usageCacheFallback = config.shareUsageWithCLI ? CLIUsageCache.fallbackReader() : nil
+        return context
+    }
 }
 
 struct UsageCommandOutput {
@@ -52,6 +61,8 @@ private struct UsageSuccessRenderInput {
     let command: UsageCommandContext
     let diagnostic: String?
     let notes: [String]
+    /// Set when the usage came from the menu bar app's cache: seconds since its fetch.
+    var ageSeconds: Int?
 }
 
 extension UsageCommandOutput {
@@ -73,7 +84,7 @@ extension CodexBarCLI {
         let provider = Self.decodeProvider(from: values, config: config)
         let providerList = provider.asList
         let setup = Self.usageFetchSetup(values: values, providers: providerList, output: output)
-        let command = setup.command
+        let command = setup.command.withUsageCacheFallback(config: config)
         let tokenContext = setup.tokenContext(config: config, output: output)
         let appAutoVerifier = command.providerRuntime == .app
         var sections: [String] = []
@@ -344,7 +355,7 @@ extension CodexBarCLI {
                 output.sections.append(text)
             }
         case .json:
-            output.payload.append(self.makeUsagePayload(
+            var usagePayload = self.makeUsagePayload(
                 provider: input.provider,
                 accountLabel: input.accountLabel,
                 cacheAccountKey: input.cacheAccountKey,
@@ -356,10 +367,13 @@ extension CodexBarCLI {
                 antigravityPlanInfo: input.antigravityPlanInfo,
                 dashboard: input.dashboard,
                 diagnostic: input.diagnostic,
-                weeklyWorkDays: input.command.weeklyWorkDays))
+                weeklyWorkDays: input.command.weeklyWorkDays)
+            usagePayload.ageSeconds = input.ageSeconds
+            output.payload.append(usagePayload)
         }
     }
 
+    // swiftlint:disable:next function_body_length
     private static func fetchUsageOutput(
         provider: UsageProvider,
         account: ProviderTokenAccount?,
@@ -370,7 +384,7 @@ extension CodexBarCLI {
     {
         var output = UsageCommandOutput()
         let env = tokenContext.environment(
-            base: ProcessInfo.processInfo.environment,
+            base: tokenContext.baseEnvironment,
             provider: provider,
             account: account,
             codexActiveSourceOverride: codexVisibleAccount?.selectionSource)
@@ -431,6 +445,9 @@ extension CodexBarCLI {
             persistsCLISessions: Self.persistsCLISessions(provider: provider, command: command),
             persistentCLISessionIdleWindow: command.persistentCLISessionIdleWindow,
             resolvedCLIVersion: resolvedCLIVersion)
+        #if os(macOS)
+        KeychainLockWitness.reset()
+        #endif
         let outcome = await Self.fetchProviderUsage(provider: provider, context: fetchContext)
         if command.verbose, !command.jsonOnly {
             Self.printFetchAttempts(provider: provider, attempts: outcome.attempts)
@@ -490,6 +507,18 @@ extension CodexBarCLI {
                     notes: notes),
                 output: &output)
         case let .failure(error):
+            // Only a default-account fetch without `--source` that hit a locked keychain falls back to the cache.
+            if command.sourceModeOverride == nil, account == nil, codexVisibleAccount == nil,
+               let hit = command.usageCacheFallback?(provider, error)
+            {
+                let cached = Self.cachedUsageOutput(
+                    provider: provider,
+                    hit: hit,
+                    status: status,
+                    effectiveSourceMode: effectiveSourceMode,
+                    command: command)
+                return await Self.finishUsageOutput(cached, provider: provider, command: command)
+            }
             output.exitCode = Self.mapError(error)
             if command.format == .json {
                 output.payload.append(Self.makeProviderErrorPayload(
@@ -527,6 +556,48 @@ extension CodexBarCLI {
         }
 
         return await Self.finishUsageOutput(output, provider: provider, command: command)
+    }
+
+    /// Distinct from provider-reported labels such as Antigravity's desktop-app probe (`app`).
+    static let cachedUsageSourceLabel = "codexbar-app"
+
+    static func cachedUsageOutput(
+        provider: UsageProvider,
+        hit: CLIUsageCache.Hit,
+        status: ProviderStatusPayload?,
+        effectiveSourceMode: ProviderSourceMode,
+        command: UsageCommandContext) -> UsageCommandOutput
+    {
+        let source = Self.cachedUsageSourceLabel
+        let usage = hit.entry.usage.scoped(to: provider)
+        let appNote = "Cached by the CodexBar app (the keychain is locked here). "
+            + UsageFormatter.updatedString(from: usage.updatedAt)
+        let notes = Self.usageTextNotes(
+            provider: provider,
+            sourceMode: effectiveSourceMode,
+            resolvedSourceLabel: source,
+            dataConfidence: usage.dataConfidence) + [appNote]
+        var output = UsageCommandOutput()
+        Self.appendSuccessRenderOutput(
+            UsageSuccessRenderInput(
+                provider: provider,
+                accountLabel: nil,
+                // The default account has no cache key (`usageCacheAccountKey` returns nil for it).
+                cacheAccountKey: nil,
+                version: nil,
+                source: source,
+                status: status,
+                usage: usage,
+                credits: nil,
+                antigravityPlanInfo: nil,
+                dashboard: nil,
+                effectiveSourceMode: effectiveSourceMode,
+                command: command,
+                diagnostic: nil,
+                notes: notes,
+                ageSeconds: hit.ageSeconds),
+            output: &output)
+        return output
     }
 
     static func shouldDetectVersion(provider: UsageProvider, result: ProviderFetchResult) -> Bool {
