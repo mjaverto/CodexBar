@@ -12,6 +12,7 @@ extension UsageStore {
         let entries: [CLIUsageCache.Entry]? = self.settings.config.shareUsageWithCLI
             ? self.enabledFirstPartyProvidersForDisplay().compactMap { provider in
                 // Only the default/system account matches what the CLI fetches itself.
+                // Provider-specific by design: Codex managed/profile-home accounts differ from the CLI's live one.
                 guard self.settings.effectiveSelectedTokenAccount(for: provider) == nil,
                       provider != .codex || self.settings.codexActiveSource == .liveSystem,
                       let snapshot = self.presentationSnapshot(for: provider)
