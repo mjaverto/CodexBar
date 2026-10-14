@@ -2513,6 +2513,7 @@
 "Ahead of pace is +" = "Di atas laju adalah +";
 "Reserve is +" = "Cadangan adalah +";
 
+"cost_reset_inferred_tooltip" = "Diperkirakan: %@ tidak melaporkan tanggal ini. Batas pengeluaran bulanan direset pada pukul 00:00 UTC setiap tanggal 1.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Kunci dengan akses baca penagihan (preset BILLING atau READONLY). Atau atur FAL_KEY.";
 
@@ -2534,6 +2535,7 @@
 "Only enabled providers" = "Hanya penyedia aktif";
 "Restore default order" = "Pulihkan urutan bawaan";
 "Also restores the provider order in the menu bar. Can be undone." = "Juga memulihkan urutan penyedia di bar menu. Dapat diurungkan.";
+"Local Codex details; excluded from combined totals." = "Detail Codex lokal; tidak termasuk dalam total gabungan.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

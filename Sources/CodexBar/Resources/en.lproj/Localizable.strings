@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "Ahead of pace is +";
 "Reserve is +" = "Reserve is +";
 
+"cost_reset_inferred_tooltip" = "Inferred: %@ doesn't report this date. Monthly spend caps roll over at 00:00 UTC on the 1st.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY.";
 
@@ -2534,6 +2535,7 @@
 "Only enabled providers" = "Only enabled providers";
 "Restore default order" = "Restore default order";
 "Also restores the provider order in the menu bar. Can be undone." = "Also restores the provider order in the menu bar. Can be undone.";
+"Local Codex details; excluded from combined totals." = "Local Codex details; excluded from combined totals.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

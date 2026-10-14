@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "Oltre il ritmo è +";
 "Reserve is +" = "La riserva è +";
 
+"cost_reset_inferred_tooltip" = "Dedotto: %@ non comunica questa data. I limiti di spesa mensili si reimpostano alle 00:00 UTC del giorno 1.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Chiave con accesso in lettura alla fatturazione (preset BILLING o READONLY). Oppure imposta FAL_KEY.";
 
@@ -2535,6 +2536,7 @@
 "Only enabled providers" = "Solo fornitori attivi";
 "Restore default order" = "Ripristina l’ordine predefinito";
 "Also restores the provider order in the menu bar. Can be undone." = "Ripristina anche l’ordine dei fornitori nella barra dei menu. L’azione può essere annullata.";
+"Local Codex details; excluded from combined totals." = "Dettagli Codex locali; esclusi dai totali combinati.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto usa una chiave API se configurata, altrimenti i cookie del browser.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Memorizzata nel file di configurazione di CodexBar. Puoi anche impostare COMMAND_CODE_API_KEY.";

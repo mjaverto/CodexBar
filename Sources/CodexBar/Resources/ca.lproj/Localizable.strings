@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "Per sobre del ritme és +";
 "Reserve is +" = "La reserva és +";
 
+"cost_reset_inferred_tooltip" = "Inferit: %@ no informa d'aquesta data. Els límits de despesa mensuals es reinicien a les 00:00 UTC l'1 de cada mes.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Clau amb accés de lectura a la facturació (perfil BILLING o READONLY). O defineix FAL_KEY.";
 
@@ -2535,6 +2536,7 @@
 "Only enabled providers" = "Només proveïdors actius";
 "Restore default order" = "Restablir l’ordre per defecte";
 "Also restores the provider order in the menu bar. Can be undone." = "També restableix l’ordre dels proveïdors a la barra de menús. Es pot desfer.";
+"Local Codex details; excluded from combined totals." = "Detalls locals de Codex; exclosos dels totals combinats.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

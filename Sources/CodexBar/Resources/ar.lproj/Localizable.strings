@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "تجاوز الوتيرة هو +";
 "Reserve is +" = "الاحتياطي هو +";
 
+"cost_reset_inferred_tooltip" = "مستنتَج: لا يُبلغ %@ عن هذا التاريخ. تتم إعادة تعيين حدود الإنفاق الشهرية في الساعة 00:00 بالتوقيت العالمي المنسق (UTC) في اليوم الأول من الشهر.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "مفتاح بصلاحية قراءة الفوترة (الإعداد المسبق BILLING أو READONLY). أو اضبط FAL_KEY.";
 
@@ -2535,6 +2536,7 @@
 "Only enabled providers" = "المزوّدون المفعّلون فقط";
 "Restore default order" = "استعادة الترتيب الافتراضي";
 "Also restores the provider order in the menu bar. Can be undone." = "يستعيد أيضاً ترتيب المزوّدين في شريط القوائم. يمكن التراجع عن هذا الإجراء.";
+"Local Codex details; excluded from combined totals." = "تفاصيل Codex المحلية؛ مستبعدة من الإجماليات المجمّعة.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

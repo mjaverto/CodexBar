@@ -2511,6 +2511,7 @@
 "Ahead of pace is +" = "Опережение темпа — +";
 "Reserve is +" = "Запас — +";
 
+"cost_reset_inferred_tooltip" = "Предположительно: %@ не сообщает эту дату. Месячные лимиты расходов сбрасываются 1-го числа в 00:00 UTC.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Ключ с доступом на чтение биллинга (пресет BILLING или READONLY). Или задайте FAL_KEY.";
 
@@ -2532,6 +2533,7 @@
 "Only enabled providers" = "Только активные провайдеры";
 "Restore default order" = "Восстановить исходный порядок";
 "Also restores the provider order in the menu bar. Can be undone." = "Также восстанавливает порядок провайдеров в строке меню. Действие можно отменить.";
+"Local Codex details; excluded from combined totals." = "Локальные данные Codex; не учитываются в общих итогах.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

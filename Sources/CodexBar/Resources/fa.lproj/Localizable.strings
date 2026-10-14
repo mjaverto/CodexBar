@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "جلوتر از آهنگ مصرف یعنی +";
 "Reserve is +" = "ذخیره یعنی +";
 
+"cost_reset_inferred_tooltip" = "استنباط‌شده: %@ این تاریخ را گزارش نمی‌کند. سقف هزینه ماهانه ساعت 00:00 UTC روز اول ماه ریست می‌شود.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "کلیدی با دسترسی خواندن صورت‌حساب (پیش‌تنظیم BILLING یا READONLY). یا FAL_KEY را تنظیم کنید.";
 
@@ -2535,6 +2536,7 @@
 "Only enabled providers" = "فقط ارائه‌دهندگان فعال";
 "Restore default order" = "بازیابی ترتیب پیش‌فرض";
 "Also restores the provider order in the menu bar. Can be undone." = "ترتیب ارائه‌دهندگان در نوار منو را نیز بازیابی می‌کند. قابل واگرد است.";
+"Local Codex details; excluded from combined totals." = "جزئیات محلی Codex؛ از مجموع‌های ترکیبی مستثنا شده‌اند.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

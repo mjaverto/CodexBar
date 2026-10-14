@@ -2514,6 +2514,7 @@
 "Ahead of pace is +" = "ใช้เร็วกว่าที่ควรเป็นคือ +";
 "Reserve is +" = "โควตาสำรองคือ +";
 
+"cost_reset_inferred_tooltip" = "ประมาณการ: %@ ไม่รายงานวันที่นี้ วงเงินค่าใช้จ่ายรายเดือนจะรีเซ็ตเวลา 00:00 UTC ของวันที่ 1";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "คีย์ที่มีสิทธิ์อ่านข้อมูลการเรียกเก็บเงิน (พรีเซ็ต BILLING หรือ READONLY) หรือตั้งค่า FAL_KEY";
 
@@ -2535,6 +2536,7 @@
 "Only enabled providers" = "เฉพาะผู้ให้บริการที่เปิดใช้";
 "Restore default order" = "คืนค่าลำดับเริ่มต้น";
 "Also restores the provider order in the menu bar. Can be undone." = "คืนค่าลำดับผู้ให้บริการในแถบเมนูด้วย สามารถเลิกทำได้";
+"Local Codex details; excluded from combined totals." = "รายละเอียด Codex ในเครื่อง ไม่รวมอยู่ในยอดรวม";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

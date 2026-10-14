@@ -2510,6 +2510,7 @@
 "Ahead of pace is +" = "ペース超過を + で表示";
 "Reserve is +" = "余裕を + で表示";
 
+"cost_reset_inferred_tooltip" = "推定: %@ はこの日付を報告しません。月間の支出上限は毎月1日 00:00 UTC にリセットされます。";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "請求の読み取り権限を持つキー（BILLING または READONLY プリセット）。または FAL_KEY を設定します。";
 
@@ -2531,6 +2532,7 @@
 "Only enabled providers" = "有効なプロバイダーのみ";
 "Restore default order" = "既定の順序に戻す";
 "Also restores the provider order in the menu bar. Can be undone." = "メニューバーのプロバイダー順序も戻します。取り消し可能です。";
+"Local Codex details; excluded from combined totals." = "ローカルの Codex 詳細。合計には含まれません。";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

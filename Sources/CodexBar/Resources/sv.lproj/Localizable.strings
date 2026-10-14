@@ -2509,6 +2509,7 @@
 "Ahead of pace is +" = "Över förbrukningstakten är +";
 "Reserve is +" = "Reserv är +";
 
+"cost_reset_inferred_tooltip" = "Antaget: %@ rapporterar inte detta datum. Månatliga utgiftsgränser återställs den 1:a kl. 00:00 UTC.";
 /* fal provider credentials */
 "Key with billing read access (BILLING or READONLY preset). Or set FAL_KEY." = "Nyckel med läsåtkomst till fakturering (förinställning BILLING eller READONLY). Eller ange FAL_KEY.";
 
@@ -2530,6 +2531,7 @@
 "Only enabled providers" = "Endast aktiverade leverantörer";
 "Restore default order" = "Återställ standardordning";
 "Also restores the provider order in the menu bar. Can be undone." = "Återställer även leverantörsordningen i menyraden. Kan ångras.";
+"Local Codex details; excluded from combined totals." = "Lokala Codex-detaljer; ingår inte i de sammanlagda totalerna.";
 
 "Auto uses an API key when configured, otherwise browser cookies." = "Auto uses an API key when configured, otherwise browser cookies.";
 "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY." = "Stored in the CodexBar config file. You can also set COMMAND_CODE_API_KEY.";

@@ -223,8 +223,9 @@ struct ClaudePlatformPluginTests {
         #expect(await fixture.sessions == 3)
     }
 
-    @Test(arguments: ["/api/organizations", "/api/organizations/\(apiOrganization)/prepaid/credits"],
-          BundledPluginTestSupport.engines)
+    @Test(
+        arguments: ["/api/organizations", "/api/organizations/\(apiOrganization)/prepaid/credits"],
+        BundledPluginTestSupport.engines)
     func `an unauthorized profile advances to the next profile`(
         path: String, engine: ProviderPluginEngineKind) async throws
     {
