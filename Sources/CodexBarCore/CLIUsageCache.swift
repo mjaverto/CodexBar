@@ -37,15 +37,34 @@ public struct CLIUsageCache: Codable, Sendable {
         }
 
         /// Built field by field: new `UsageSnapshot` fields (provider blobs, details, identity) stay out until listed.
+        /// Codex credit balances are not cached: only the spend figures of `providerCost` are kept.
         private static func figures(_ usage: UsageSnapshot) -> UsageSnapshot {
             UsageSnapshot(
                 primary: usage.primary,
                 secondary: usage.secondary,
                 tertiary: usage.tertiary,
                 extraRateWindows: usage.extraRateWindows,
-                providerCost: usage.providerCost,
+                providerCost: usage.providerCost.map(self.withoutBalance),
                 updatedAt: usage.updatedAt,
                 dataConfidence: usage.dataConfidence)
+        }
+
+        private static func withoutBalance(_ cost: ProviderCostSnapshot) -> ProviderCostSnapshot {
+            ProviderCostSnapshot(
+                used: cost.used,
+                limit: cost.limit,
+                currencyCode: cost.currencyCode,
+                period: cost.period,
+                resetsAt: cost.resetsAt,
+                nextRegenAmount: cost.nextRegenAmount,
+                personalUsed: cost.personalUsed,
+                updatedAt: cost.updatedAt)
+        }
+
+        /// Already-projected figures (the read-time freshness filter), without re-running the projection.
+        fileprivate init(provider: String, filtered usage: UsageSnapshot) {
+            self.provider = provider
+            self.usage = usage
         }
     }
 
@@ -57,6 +76,10 @@ public struct CLIUsageCache: Codable, Sendable {
 
     /// Older entries are ignored so the CLI reports its own error instead of misleading numbers.
     public static let maximumAge: TimeInterval = 3600
+    /// Entries dated further ahead than this (clock skew) are not served.
+    static let futureTolerance: TimeInterval = 60
+    /// The cache is tiny; anything bigger is not ours.
+    static let maximumFileSize = 1 << 20
 
     public let entries: [Entry]
 
@@ -118,7 +141,8 @@ public struct CLIUsageCache: Codable, Sendable {
             directoryMode & 0o077 == 0
         else { return nil }
         // O_NOFOLLOW + fstat check the very file that gets read.
-        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+        // O_NONBLOCK keeps a FIFO from hanging the open; the S_IFREG check then rejects it.
+        let descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK)
         guard descriptor >= 0 else { return nil }
         let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         var metadata = stat()
@@ -126,7 +150,7 @@ public struct CLIUsageCache: Codable, Sendable {
               metadata.st_mode & S_IFMT == S_IFREG,
               metadata.st_uid == ownerUID,
               metadata.st_mode & 0o077 == 0,
-              let data = try? handle.readToEnd()
+              let data = try? handle.read(upToCount: Self.maximumFileSize)
         else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -147,8 +171,28 @@ public struct CLIUsageCache: Codable, Sendable {
     public func hit(for provider: UsageProvider, now: Date = Date()) -> Hit? {
         guard let entry = self.entries.first(where: { $0.provider == provider.rawValue }) else { return nil }
         let age = now.timeIntervalSince(entry.usage.updatedAt)
-        guard age <= Self.maximumAge else { return nil }
-        return Hit(entry: entry, ageSeconds: Int(max(0, age)))
+        // Future-dated entries (clock skew or tampering) are not trusted.
+        guard age <= Self.maximumAge, age >= -Self.futureTolerance else { return nil }
+        let source = entry.usage
+        let hadWindows = source.hasRateLimitWindows
+        func live(_ window: RateWindow?) -> RateWindow? {
+            guard let window, window.resetsAt.map({ $0 >= now }) ?? true else { return nil }
+            return window
+        }
+        let cost = source.providerCost.flatMap {
+            now.timeIntervalSince($0.updatedAt) <= Self.maximumAge ? $0 : nil
+        }
+        let usage = UsageSnapshot(
+            primary: live(source.primary),
+            secondary: live(source.secondary),
+            tertiary: live(source.tertiary),
+            extraRateWindows: source.extraRateWindows?.filter { live($0.window) != nil },
+            providerCost: cost,
+            updatedAt: source.updatedAt,
+            dataConfidence: source.dataConfidence)
+        // Every window already reset: the numbers would mislead, so report the CLI's own error instead.
+        guard hadWindows ? usage.hasRateLimitWindows : usage.providerCost != nil else { return nil }
+        return Hit(entry: Entry(provider: entry.provider, filtered: usage), ageSeconds: Int(max(0, age)))
     }
 
     /// Serves cached usage after a failed fetch. Nil (no fallback) when the caller has a GUI session, so local
@@ -188,6 +232,7 @@ public struct CLIUsageCache: Codable, Sendable {
 
     static func isLockedKeychainError(_ error: Error) -> Bool {
         let status: Int
+        // Provider-specific by design: Claude OAuth surfaces keychain statuses through its own error type.
         if case let ClaudeOAuthCredentialsError.keychainError(code) = error {
             status = code
         } else if (error as NSError).domain == NSOSStatusErrorDomain {

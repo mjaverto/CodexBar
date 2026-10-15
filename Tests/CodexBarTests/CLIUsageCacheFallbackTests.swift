@@ -1,9 +1,14 @@
-import CodexBarCore
 import Commander
 import Foundation
+@testable import CodexBarCore
+#if os(macOS)
+import Security
+#endif
 import Testing
 @testable import CodexBarCLI
 
+/// The keychain lock witness is process-global, so these tests must not interleave.
+@Suite(.serialized)
 struct CLIUsageCacheFallbackTests {
     private static let provider = UsageProvider.zai
 
@@ -39,10 +44,11 @@ struct CLIUsageCacheFallbackTests {
         let text = try #require(output.sections.first)
         #expect(text.contains("(codexbar-app)"))
         #expect(text.contains("Cached by the CodexBar app"))
+        #expect(text.contains("keychain was unavailable"))
     }
 
     @Test
-    func `other failures keep the local error even with a fresh cache`() async throws {
+    func `negative control: no locked keychain observation keeps the local error`() async throws {
         let root = try Self.makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let command = try Self.command(arguments: ["--json"], cacheRoot: root, lockedKeychainObserved: false)
@@ -72,6 +78,42 @@ struct CLIUsageCacheFallbackTests {
         #expect(output.payload.first?.source != "codexbar-app")
     }
 
+    #if os(macOS)
+    @Test
+    func `a stale witness note from before the fetch is reset and does not trigger the fallback`() async throws {
+        let root = try Self.makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let command = try Self.command(
+            arguments: ["--json"],
+            cacheRoot: root,
+            lockedKeychainObserved: { KeychainLockWitness.didObserveLockedKeychain })
+        KeychainLockWitness.note(errSecInteractionNotAllowed)
+        #expect(KeychainLockWitness.didObserveLockedKeychain)
+
+        let output = try await Self.fetch(command: command)
+
+        #expect(output.exitCode != .success)
+        #expect(output.payload.first?.source != "codexbar-app")
+        KeychainLockWitness.reset()
+    }
+
+    @Test
+    func `witness trips only on locked keychain statuses and resets`() {
+        KeychainLockWitness.reset()
+        KeychainLockWitness.note(errSecItemNotFound)
+        KeychainLockWitness.note(errSecSuccess)
+        #expect(!KeychainLockWitness.didObserveLockedKeychain)
+
+        KeychainLockWitness.note(errSecInteractionNotAllowed)
+        #expect(KeychainLockWitness.didObserveLockedKeychain)
+        KeychainLockWitness.reset()
+        #expect(!KeychainLockWitness.didObserveLockedKeychain)
+
+        KeychainLockWitness.note(errSecAuthFailed)
+        #expect(KeychainLockWitness.didObserveLockedKeychain)
+        KeychainLockWitness.reset()
+    }
+    #endif
     @Test
     func `without the config flag no reader is installed`() throws {
         let command = try Self.command(arguments: ["--json"], cacheRoot: nil, lockedKeychainObserved: true)
@@ -105,6 +147,17 @@ struct CLIUsageCacheFallbackTests {
         cacheRoot: URL?,
         lockedKeychainObserved: Bool) throws -> UsageCommandContext
     {
+        try self.command(
+            arguments: arguments,
+            cacheRoot: cacheRoot,
+            lockedKeychainObserved: { lockedKeychainObserved })
+    }
+
+    private static func command(
+        arguments: [String],
+        cacheRoot: URL?,
+        lockedKeychainObserved: @escaping @Sendable () -> Bool) throws -> UsageCommandContext
+    {
         let values = try Program(descriptors: CodexBarCLI.commandDescriptors())
             .resolve(argv: ["usage", "--no-color"] + arguments).parsedValues
         var command = try CLIUsageFetchSetup(
@@ -127,7 +180,7 @@ struct CLIUsageCacheFallbackTests {
         command.usageCacheFallback = CLIUsageCache.fallbackReader(
             url: url,
             hasGraphicSession: { false },
-            lockedKeychainObserved: { lockedKeychainObserved })
+            lockedKeychainObserved: lockedKeychainObserved)
         return command
     }
 }

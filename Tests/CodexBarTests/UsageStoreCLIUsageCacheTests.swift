@@ -59,19 +59,59 @@ struct UsageStoreCLIUsageCacheTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    @Test
+    func `flag off skips work once the cleanup has run`() async throws {
+        let root = Self.makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("cache/usage.json")
+        let store = Self.makeStore(shareUsage: false, cacheURL: url)
+        store.persistCLIUsageCache()
+        await store.cliUsageCachePersistTask?.value
+        let task = store.cliUsageCachePersistTask
+        try CLIUsageCache.write(
+            CLIUsageCache(entries: [CLIUsageCache.Entry(provider: .claude, usage: Self.usage())].compactMap(\.self)),
+            to: url)
+
+        store.persistCLIUsageCache()
+
+        #expect(store.cliUsageCachePersistTask == task)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test
+    func `codex is cached only while the live system account is active`() async throws {
+        let root = Self.makeRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appendingPathComponent("cache/usage.json")
+        let store = Self.makeStore(shareUsage: true, cacheURL: url, providers: [.codex])
+        store._setSnapshotForTesting(Self.usage(), provider: .codex)
+
+        store.settings.codexActiveSource = .managedAccount(id: UUID())
+        store.persistCLIUsageCache()
+        await store.cliUsageCachePersistTask?.value
+        #expect(try #require(CLIUsageCache.load(from: url)).entries.isEmpty)
+
+        store.settings.codexActiveSource = .liveSystem
+        store.persistCLIUsageCache()
+        await store.cliUsageCachePersistTask?.value
+        #expect(try #require(CLIUsageCache.load(from: url)).entries.map(\.provider) == ["codex"])
+    }
+
     private static func makeRoot() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent("UsageStoreCLIUsageCacheTests-\(UUID().uuidString)", isDirectory: true)
     }
 
-    private static func makeStore(shareUsage: Bool, cacheURL: URL) -> UsageStore {
+    private static func makeStore(shareUsage: Bool, cacheURL: URL, providers: Set<UsageProvider> = [.claude])
+        -> UsageStore
+    {
         var config = testConfigWithAllProvidersDisabled()
         config.shareUsageWithCLI = shareUsage
         let settings = testSettingsStore(
             suiteName: "UsageStoreCLIUsageCacheTests",
             userDefaults: InMemoryUserDefaults(),
             config: config)
-        enableTestProviders([.claude], settings: settings)
+        enableTestProviders(providers, settings: settings)
         return UsageStore(
             fetcher: UsageFetcher(environment: [:]),
             browserDetection: BrowserDetection(homeDirectory: "/synthetic", fileExists: { _ in false }),

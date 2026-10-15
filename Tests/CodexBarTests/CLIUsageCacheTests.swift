@@ -10,6 +10,58 @@ struct CLIUsageCacheTests {
     private static let now = fetchedAt.addingTimeInterval(90)
 
     @Test
+    func `balances are stripped and future dated or fully expired entries are not served`() throws {
+        let cost = ProviderCostSnapshot(
+            used: 1,
+            limit: 10,
+            currencyCode: "USD",
+            balance: 5,
+            balanceUpdatedAt: Self.fetchedAt,
+            balanceIsWorkspace: true,
+            updatedAt: Self.fetchedAt)
+        let usage = UsageSnapshot(
+            primary: RateWindow(
+                usedPercent: 1,
+                windowMinutes: 300,
+                resetsAt: Self.fetchedAt.addingTimeInterval(300),
+                resetDescription: nil),
+            secondary: nil,
+            providerCost: cost,
+            updatedAt: Self.fetchedAt)
+        let cache = CLIUsageCache(entries: [CLIUsageCache.Entry(provider: .codex, usage: usage)].compactMap(\.self))
+
+        let served = try #require(cache.hit(for: .codex, now: Self.now)?.entry.usage.providerCost)
+        #expect(served.used == 1)
+        #expect(served.balance == nil)
+        #expect(served.balanceUpdatedAt == nil)
+        #expect(served.balanceIsWorkspace == nil)
+        // Future dated (beyond the clock-skew tolerance).
+        #expect(cache.hit(for: .codex, now: Self.fetchedAt.addingTimeInterval(-120)) == nil)
+        // The only rate window has already reset.
+        #expect(cache.hit(for: .codex, now: Self.fetchedAt.addingTimeInterval(301)) == nil)
+    }
+
+    @Test
+    func `expired windows are dropped while live ones are kept`() throws {
+        let expired = RateWindow(
+            usedPercent: 90,
+            windowMinutes: 300,
+            resetsAt: Self.fetchedAt.addingTimeInterval(10),
+            resetDescription: nil)
+        let live = RateWindow(
+            usedPercent: 20,
+            windowMinutes: 10080,
+            resetsAt: Self.fetchedAt.addingTimeInterval(9999),
+            resetDescription: nil)
+        let usage = UsageSnapshot(primary: expired, secondary: live, updatedAt: Self.fetchedAt)
+        let cache = CLIUsageCache(entries: [CLIUsageCache.Entry(provider: .claude, usage: usage)].compactMap(\.self))
+
+        let served = try #require(cache.hit(for: .claude, now: Self.now)?.entry.usage)
+        #expect(served.primary == nil)
+        #expect(served.secondary?.usedPercent == 20)
+    }
+
+    @Test
     func `round trip keeps extra quota rows and drops identity`() throws {
         let root = try Self.makeRoot()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -234,25 +286,6 @@ struct CLIUsageCacheTests {
         #expect(try reader(lockedObserved: false)(.claude, claude)?.ageSeconds == 90)
         #endif
     }
-
-    #if os(macOS)
-    @Test
-    func `witness trips only on locked keychain statuses and resets`() {
-        KeychainLockWitness.reset()
-        KeychainLockWitness.note(errSecItemNotFound)
-        KeychainLockWitness.note(errSecSuccess)
-        #expect(!KeychainLockWitness.didObserveLockedKeychain)
-
-        KeychainLockWitness.note(errSecInteractionNotAllowed)
-        #expect(KeychainLockWitness.didObserveLockedKeychain)
-        KeychainLockWitness.reset()
-        #expect(!KeychainLockWitness.didObserveLockedKeychain)
-
-        KeychainLockWitness.note(errSecAuthFailed)
-        #expect(KeychainLockWitness.didObserveLockedKeychain)
-        KeychainLockWitness.reset()
-    }
-    #endif
 
     @Test
     func `config flag round trips and is omitted when off`() throws {

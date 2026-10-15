@@ -331,6 +331,8 @@ final class UsageStore {
     @ObservationIgnored let widgetSnapshotURL: URL?
     @ObservationIgnored let cliUsageCacheURL: URL?
     @ObservationIgnored var cliUsageCachePersistTask: Task<Void, Never>?
+    /// True until the one-time cleanup after launch (or a later flag-off removal) has been queued.
+    @ObservationIgnored var cliUsageCacheMayExist = true
     @ObservationIgnored let widgetTimelineReloader: @MainActor () -> Void
     @ObservationIgnored var widgetUsagePreservationBlockedProviders: Set<ProviderInstanceID> = []
 
@@ -860,7 +862,6 @@ final class UsageStore {
             }
 
             self.persistWidgetSnapshot(reason: "refresh")
-            self.persistCLIUsageCache()
             if let forcedBackgroundGeneration {
                 self.enqueueForcedRefreshEnrichment(
                     generation: forcedBackgroundGeneration,

@@ -60,6 +60,7 @@ sources and setup guide. The [provider ID list](provider-ids.md) is generated fr
   - Text output and full terminal cards include history already supplied by the selected provider, such as OpenRouter Activity spend or Grok local token totals. They preserve the source period, currency, known zero values, and reported/estimated cost labels. This live history remains separate from the ordinary usage JSON schema and the `cost` command.
   - Usage JSON includes optional `resetCredits` with `available` and `nextExpiresAt`, derived from the shared unexpired, available reset-credit inventory. This compact summary contains no credit identifiers; an absent inventory omits the summary.
   - Usage JSON includes optional `rateWindowLabels` for present windows from built-in providers. Consumers can use these display labels when a window omits its cadence; missing windows and unknown provider IDs do not gain invented labels.
+  - Usage JSON includes optional `ageSeconds` only when the numbers came from the app's usage cache (`"source": "codexbar-app"`; see [SSH and other non-GUI sessions](#ssh-and-other-non-gui-sessions-macos)).
   - JSON uses the generic `usage.details` array for provider-specific information. Each section contains an optional
     `title`, `rows` (`label`, `value`, and optional `secondaryValue`), and an optional `bars` or `line` chart. The same
     shape is returned by `GET /usage` from `codexbar serve`.
@@ -449,19 +450,22 @@ no Settings pane for it) and the CodexBar app writes a private usage cache after
 fetch fails in a non-GUI session because a Keychain read in that fetch hit a locked keychain (or the error itself
 carries a locked-keychain status), `codexbar usage` and `cards` report the app's last good numbers instead, as
 `"source": "codexbar-app"` with `"ageSeconds"` (seconds since the app fetched them); text output adds a note with the
-same age. Any other failure (a bad key, a 403, a network error) keeps its own error.
+same age. A cache hit exits 0; scripts can tell it from a live fetch by `source` / `ageSeconds`. Any other failure (a bad
+key, a 403, a network error) keeps its own error.
 
 - The cache is `~/Library/Application Support/CodexBar/CLIUsageCache/usage.json`: mode `0600` in a `0700` directory,
   written atomically. It carries usage figures with their window labels, per-provider fetch times, and spend; no
   credentials and no account identity fields (email, organization, account ID, plan). Codex credit balances are not
-  cached.
+  cached. Window labels are provider-supplied text copied verbatim.
 - The CLI ignores the file unless it and its directory are owned by you and not group/world accessible, it is a
-  regular file (not a symlink), it decodes, and the provider's entry is at most one hour old.
+  regular file under 1 MiB (not a symlink or FIFO), it decodes, and the provider's entry is at most one hour old and
+  not dated in the future. Windows that already reset are dropped, and a hit with no live window is ignored.
 - The app caches only providers that use the default/system account (no selected token account, and Codex on its live
   system account). The CLI applies it only to the default account without an explicit `--source`; token accounts
   (`--account`, `--account-index`, or a configured active account) keep the local error. GUI sessions never use the
   cache.
-- Turning the flag off makes the app delete the cache on its next refresh.
+- Turning the flag off makes the app delete the cache on its next refresh (and once at launch if a stale file exists).
+- Limitation: the app must have refreshed recently; the cache is a last-known snapshot, not a live fetch.
 
 ## Managed Codex accounts (macOS)
 

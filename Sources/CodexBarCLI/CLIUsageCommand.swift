@@ -446,7 +446,11 @@ extension CodexBarCLI {
             persistentCLISessionIdleWindow: command.persistentCLISessionIdleWindow,
             resolvedCLIVersion: resolvedCLIVersion)
         #if os(macOS)
-        KeychainLockWitness.reset()
+        // The witness is process-global: only reset it when a fallback will read it. Concurrent callers (serve)
+        // must never enable the fallback, or fetches would clear each other's observations.
+        if command.usageCacheFallback != nil {
+            KeychainLockWitness.reset()
+        }
         #endif
         let outcome = await Self.fetchProviderUsage(provider: provider, context: fetchContext)
         if command.verbose, !command.jsonOnly {
@@ -570,7 +574,7 @@ extension CodexBarCLI {
     {
         let source = Self.cachedUsageSourceLabel
         let usage = hit.entry.usage.scoped(to: provider)
-        let appNote = "Cached by the CodexBar app (the keychain is locked here). "
+        let appNote = "Cached by the CodexBar app (the keychain was unavailable here). "
             + UsageFormatter.updatedString(from: usage.updatedAt)
         let notes = Self.usageTextNotes(
             provider: provider,
